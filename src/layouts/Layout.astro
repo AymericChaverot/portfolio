@@ -7,6 +7,7 @@ interface Props {
 }
 
 const { title, lang = "fr" } = Astro.props;
+const base = import.meta.env.BASE_URL;
 ---
 
 <!doctype html>
@@ -16,7 +17,7 @@ const { title, lang = "fr" } = Astro.props;
         <meta name="description" content="Portfolio of Aymeric Chaverot" />
         <meta name="viewport" content="width=device-width" />
         <meta name="generator" content={Astro.generator} />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="icon" type="image/svg+xml" href={base + "favicon.svg"} />
         <title>{title}</title>
 
         <!-- Fonts -->

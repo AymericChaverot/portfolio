@@ -31,7 +31,8 @@ const {
     actionIcon = "code",
 } = Astro.props;
 
-const projectUrl = id ? `/${lang}/projects/${id}` : actionUrl;
+const base = import.meta.env.BASE_URL;
+const projectUrl = id ? `${base}${lang}/projects/${id}` : actionUrl;
 ---
 
 <a

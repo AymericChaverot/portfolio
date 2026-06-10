@@ -25,6 +25,7 @@ const { lang, id } = Astro.params as { lang: Lang; id: string };
 const { project } = Astro.props;
 
 const backLabel = lang === "en" ? "Back to Home" : "Retour à l'accueil";
+const base = import.meta.env.BASE_URL;
 ---
 
 <Layout title={`${project.title} | ${SITE_CONFIG.name}`} lang={lang}>
@@ -32,7 +33,7 @@ const backLabel = lang === "en" ? "Back to Home" : "Retour à l'accueil";
     <main class="pt-32 pb-20">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <a
-                href={`/${lang}#projects`}
+                href={`${base}${lang}#projects`}
                 class="inline-flex items-center text-primary hover:text-white transition-colors mb-12 font-mono text-sm"
             >
                 <span class="material-icons text-sm mr-2">arrow_back</span>

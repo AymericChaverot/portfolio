@@ -1,8 +1,9 @@
 ---
 // Simple redirect to the default language (French)
+const base = import.meta.env.BASE_URL;
 ---
 
-<meta http-equiv="refresh" content="0;url=/fr/" />
-<script>
-	window.location.href = "/fr/";
+<meta http-equiv="refresh" content={`0;url=${base}fr/`} />
+<script define:vars={{ base }}>
+	window.location.href = `${base}fr/`;
 </script>
