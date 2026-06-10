@@ -8,17 +8,42 @@ interface Props {
 
 const { title, lang = "fr" } = Astro.props;
 const base = import.meta.env.BASE_URL;
+
+// Generate absolute URLs for Open Graph metadata
+const siteUrl = Astro.site ? Astro.site.href : "https://aymericchaverot.github.io/portfolio/";
+const ogImageUrl = Astro.site ? new URL("og-image.png", Astro.site).href : `${siteUrl}og-image.png`;
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+const description = lang === "en"
+    ? "Systems Engineer & Software Architect Portfolio. High-performance infrastructure, distributed systems, and low-level engineering."
+    : "Portfolio de Aymeric Chaverot - Ingénieur Système & Architecte Logiciel. Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
 ---
 
 <!doctype html>
 <html class="dark" lang={lang}>
     <head>
         <meta charset="UTF-8" />
-        <meta name="description" content="Portfolio of Aymeric Chaverot" />
+        <meta name="description" content={description} />
         <meta name="viewport" content="width=device-width" />
         <meta name="generator" content={Astro.generator} />
         <link rel="icon" type="image/svg+xml" href={(base + "/favicon.svg").replace(/\/+/g, "/")} />
         <title>{title}</title>
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={ogImageUrl} />
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={canonicalUrl} />
+        <meta property="twitter:title" content={title} />
+        <meta property="twitter:description" content={description} />
+        <meta property="twitter:image" content={ogImageUrl} />
+
+        <!-- Theme Color -->
+        <meta name="theme-color" content="#f48c25" />
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
