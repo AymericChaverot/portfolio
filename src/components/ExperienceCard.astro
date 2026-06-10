@@ -24,7 +24,7 @@ const {
 } = Astro.props;
 
 const base = import.meta.env.BASE_URL;
-const logoPath = logo ? (logo.startsWith("/") ? base + logo.slice(1) : base + logo) : undefined;
+const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
 ---
 
 <article class="exp-card">

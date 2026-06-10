@@ -32,7 +32,8 @@ const {
 } = Astro.props;
 
 const base = import.meta.env.BASE_URL;
-const projectUrl = id ? `${base}${lang}/projects/${id}` : actionUrl;
+const projectUrl = id ? (base + "/" + lang + "/projects/" + id).replace(/\/+/g, "/") : actionUrl;
+const imagePath = image.startsWith("http") ? image : (base + "/" + image).replace(/\/+/g, "/");
 ---
 
 <a
@@ -44,7 +45,7 @@ const projectUrl = id ? `${base}${lang}/projects/${id}` : actionUrl;
         <Image
             alt={imageAlt}
             class="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-500"
-            src={image}
+            src={imagePath}
             loading="lazy"
             width={800}
             height={600}

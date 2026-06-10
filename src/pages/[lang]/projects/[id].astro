@@ -26,6 +26,8 @@ const { project } = Astro.props;
 
 const backLabel = lang === "en" ? "Back to Home" : "Retour à l'accueil";
 const base = import.meta.env.BASE_URL;
+const backUrl = (base + "/" + lang + "#projects").replace(/\/+/g, "/");
+const projectImagePath = project.image.startsWith("http") ? project.image : (base + "/" + project.image).replace(/\/+/g, "/");
 ---
 
 <Layout title={`${project.title} | ${SITE_CONFIG.name}`} lang={lang}>
@@ -33,7 +35,7 @@ const base = import.meta.env.BASE_URL;
     <main class="pt-32 pb-20">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <a
-                href={`${base}${lang}#projects`}
+                href={backUrl}
                 class="inline-flex items-center text-primary hover:text-white transition-colors mb-12 font-mono text-sm"
             >
                 <span class="material-icons text-sm mr-2">arrow_back</span>
@@ -43,7 +45,7 @@ const base = import.meta.env.BASE_URL;
             <div class="reveal">
                 <div class="h-64 md:h-96 rounded-xl overflow-hidden mb-12 border border-neutral-800">
                     <Image
-                        src={project.image}
+                        src={projectImagePath}
                         alt={project.imageAlt}
                         class="w-full h-full object-cover"
                         width={1200}
