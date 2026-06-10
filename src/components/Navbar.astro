@@ -1,0 +1,40 @@
+---
+import { SITE_CONFIG, type Lang } from "../config";
+
+const { lang = "fr" } = Astro.props;
+const currentLang = lang as Lang;
+const t = SITE_CONFIG[currentLang].nav;
+
+const otherLang = currentLang === "fr" ? "en" : "fr";
+const otherLangLabel = currentLang === "fr" ? "EN" : "FR";
+---
+
+<nav class="fixed top-0 w-full z-50 glass-panel">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-20">
+            <div class="flex-shrink-0">
+                <a
+                    class="font-mono text-xl font-bold text-white tracking-tighter flex items-center gap-2"
+                    href="/"
+                >
+                    <span class="text-primary">&lt;</span>{SITE_CONFIG.name.replace(" ", "_")}<span class="text-primary"> /&gt;</span>
+                </a>
+            </div>
+            <div class="hidden md:block">
+                <div class="ml-10 flex items-baseline space-x-8">
+                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={`/${lang}/#about`}>{t.about}</a>
+                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={`/${lang}/#expertise`}>{t.expertise}</a>
+                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={`/${lang}/#experience`}>{t.experience}</a>
+                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={`/${lang}/#projects`}>{t.projects}</a>
+                    <a class="px-4 py-2 rounded text-sm font-medium bg-transparent text-primary border border-primary hover:bg-primary hover:text-white transition-all duration-200" href={`/${lang}/#contact`}>{t.contact}</a>
+                    <a
+                        class="text-sm font-bold text-gray-300 hover:text-white transition-colors duration-200 ml-4 border-l pl-4 border-gray-700"
+                        href={`/${otherLang}`}
+                    >
+                        {otherLangLabel}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>

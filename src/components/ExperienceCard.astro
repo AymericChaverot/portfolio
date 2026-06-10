@@ -1,0 +1,305 @@
+---
+interface Props {
+    company: string;
+    role: string;
+    period: string;
+    location: string;
+    description: string;
+    tags: string[];
+    icon?: string;
+    current?: boolean;
+    logo?: string;
+}
+
+const {
+    company,
+    role,
+    period,
+    location,
+    description,
+    tags,
+    icon = "work",
+    current = false,
+    logo,
+} = Astro.props;
+---
+
+<article class="exp-card">
+    <div class="timeline-dot" aria-hidden="true">
+        <span class="material-icons">{icon}</span>
+    </div>
+
+    <div class="exp-card-inner">
+        {logo && (
+            <div class="exp-logo-wrap" aria-hidden="true">
+                <img src={logo} alt="" class="exp-logo" />
+            </div>
+        )}
+
+        <header class="exp-card-header">
+            <div class="exp-meta">
+                <div class="exp-period font-mono text-primary text-xs tracking-widest uppercase">
+                    {period}
+                </div>
+                {current && (
+                    <span class="exp-badge">
+                        <span class="exp-badge-dot" />
+                        En poste
+                    </span>
+                )}
+            </div>
+            <h3 class="exp-role">{role}</h3>
+            <div class="exp-company-line">
+                <span class="exp-company">{company}</span>
+                <span class="exp-separator" aria-hidden="true">·</span>
+                <span class="exp-location">
+                    <span class="material-icons exp-location-icon">location_on</span>
+                    {location}
+                </span>
+            </div>
+        </header>
+
+        <p class="exp-description">{description}</p>
+
+        <footer class="exp-tags">
+            {tags.map((tag) => <span class="exp-tag">{tag}</span>)}
+        </footer>
+    </div>
+</article>
+
+<style>
+    .exp-card {
+        position: relative;
+        display: flex;
+        gap: 1.75rem;
+        align-items: flex-start;
+    }
+
+    /* ── Timeline dot ── */
+    .timeline-dot {
+        flex-shrink: 0;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 50%;
+        background: #0a0a0a;
+        border: 1.5px solid rgba(244, 140, 37, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 2;
+        box-shadow:
+            0 0 0 4px #050505,
+            0 0 14px rgba(244, 140, 37, 0.15);
+        transition:
+            border-color 0.3s ease,
+            box-shadow 0.3s ease;
+    }
+
+    .timeline-dot .material-icons {
+        font-size: 1.1rem;
+        color: #f48c25;
+    }
+
+    .exp-card:hover .timeline-dot {
+        border-color: rgba(244, 140, 37, 0.9);
+        box-shadow:
+            0 0 0 4px #050505,
+            0 0 20px rgba(244, 140, 37, 0.4);
+    }
+
+    /* ── Company logo ── */
+    .exp-logo-wrap {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 18rem;
+        height: 18rem;
+        pointer-events: none;
+        border-radius: inherit;
+        overflow: hidden;
+        mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, black 30%, transparent 75%);
+        -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, black 30%, transparent 75%);
+        opacity: 0.12;
+        transition: opacity 0.35s ease;
+    }
+
+    .exp-card:hover .exp-logo-wrap {
+        opacity: 1;
+    }
+
+    .exp-logo {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        width: 11rem;
+        height: 11rem;
+        object-fit: contain;
+        object-position: top right;
+        filter: grayscale(1) brightness(1.8);
+        transition: filter 0.35s ease;
+    }
+
+    .exp-card:hover .exp-logo {
+        filter: none;
+    }
+
+    /* ── Card inner ── */
+    .exp-card-inner {
+        flex: 1;
+        background: rgba(10, 10, 10, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition:
+            border-color 0.3s ease,
+            box-shadow 0.3s ease,
+            transform 0.3s ease;
+    }
+
+    .exp-card-inner::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(135deg, rgba(244, 140, 37, 0.04) 0%, transparent 60%);
+        opacity: 0;
+        transition: opacity 0.4s ease;
+    }
+
+    .exp-card:hover .exp-card-inner {
+        border-color: rgba(244, 140, 37, 0.25);
+        box-shadow:
+            0 8px 32px rgba(0, 0, 0, 0.4),
+            0 0 0 1px rgba(244, 140, 37, 0.08);
+        transform: translateX(4px);
+    }
+
+    .exp-card:hover .exp-card-inner::before {
+        opacity: 1;
+    }
+
+    /* ── Header ── */
+    .exp-card-header {
+        margin-bottom: 0.875rem;
+    }
+
+    .exp-meta {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .exp-period {
+        letter-spacing: 0.1em;
+    }
+
+    .exp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(10, 10, 10, 0.9);
+        border: 1px solid rgba(37, 253, 0, 0.5);
+        color: #2bff0071;
+        font-size: 0.65rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.55rem;
+        border-radius: 9999px;
+    }
+
+    .exp-badge-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #25f429;
+        animation: pulse-dot 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+        0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+        }
+        50% {
+            opacity: 0.5;
+            transform: scale(0.7);
+        }
+    }
+
+    .exp-role {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0 0 0.3rem;
+        line-height: 1.3;
+    }
+
+    .exp-company-line {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .exp-company {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    .exp-separator {
+        color: rgba(255, 255, 255, 0.3);
+    }
+
+    .exp-location {
+        display: flex;
+        align-items: center;
+        gap: 0.2rem;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.4);
+    }
+
+    .exp-location-icon {
+        font-size: 0.85rem !important;
+    }
+
+    /* ── Description ── */
+    .exp-description {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.55);
+        line-height: 1.7;
+        margin: 0 0 1.1rem;
+    }
+
+    /* ── Tags ── */
+    .exp-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .exp-tag {
+        font-size: 0.7rem;
+        font-family: var(--font-mono, monospace);
+        color: rgba(244, 140, 37, 0.8);
+        background: rgba(244, 140, 37, 0.07);
+        border: 1px solid rgba(244, 140, 37, 0.18);
+        padding: 0.2rem 0.55rem;
+        border-radius: 4px;
+        letter-spacing: 0.04em;
+        transition:
+            background 0.2s ease,
+            color 0.2s ease;
+    }
+
+    .exp-card:hover .exp-tag {
+        background: rgba(244, 140, 37, 0.12);
+        color: #f48c25;
+    }
+</style>

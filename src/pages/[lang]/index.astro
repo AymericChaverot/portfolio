@@ -1,0 +1,27 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Hero from "../../components/Hero.astro";
+import Expertise from "../../components/Expertise.astro";
+import Experience from "../../components/Experience.astro";
+import Projects from "../../components/Projects.astro";
+import Contact from "../../components/Contact.astro";
+import { SITE_CONFIG, type Lang } from "../../config";
+
+export function getStaticPaths() {
+    return [{ params: { lang: "en" } }, { params: { lang: "fr" } }];
+}
+
+const { lang } = Astro.params as { lang: Lang };
+---
+
+<Layout title={SITE_CONFIG.name} lang={lang}>
+    <Navbar lang={lang} />
+    <main>
+        <Hero lang={lang} />
+        <Expertise lang={lang} />
+        <Experience lang={lang} />
+        <Projects lang={lang} />
+        <Contact lang={lang} />
+    </main>
+</Layout>

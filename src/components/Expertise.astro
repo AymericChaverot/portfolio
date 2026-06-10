@@ -1,0 +1,98 @@
+---
+import SkillCard from "./SkillCard.astro";
+import type { Lang } from "../config";
+
+interface Props {
+    lang?: string;
+}
+
+interface SkillCardData {
+    icon: string;
+    title: string;
+    description: string;
+    skills: string[];
+}
+
+interface ExpertiseContent {
+    sectionTitle: string;
+    title: string;
+    cards: SkillCardData[];
+}
+
+const { lang = "fr" } = Astro.props;
+const currentLang = lang as Lang;
+
+const CONTENT: Record<Lang, ExpertiseContent> = {
+    en: {
+        sectionTitle: "Technical Arsenal",
+        title: "Core Expertise",
+        cards: [
+            {
+                icon: "memory",
+                title: "System & Low-Level",
+                description: "Deep understanding of computer architecture and memory management. Experienced in building robust C/C++ software and Unix tools.",
+                skills: ["C / C++", "Rust", "Unix / Linux", "Algorithms"],
+            },
+            {
+                icon: "dns",
+                title: "Backend & DevOps",
+                description: "Architecting scalable APIs and managing infrastructure. Focus on automation, containerization, and continuous deployment.",
+                skills: ["Java / Node.js / Python", "Docker / Kubernetes", "CI/CD", "SQL / NoSQL"],
+            },
+            {
+                icon: "code",
+                title: "Fullstack Development",
+                description: "Creating modern, responsive user interfaces integrated with powerful backends. Passionate about performance and user experience.",
+                skills: ["Angular / React / TypeScript", "Astro / Tailwind", "Next.js", "WebSockets"],
+            },
+        ],
+    },
+    fr: {
+        sectionTitle: "Arsenal Technique",
+        title: "Expertise Principale",
+        cards: [
+            {
+                icon: "memory",
+                title: "Système & Bas Niveau",
+                description: "Compréhension approfondie de l'architecture des ordinateurs et de la gestion mémoire. Expérience dans la création de logiciels C/C++ robustes et d'outils Unix.",
+                skills: ["C / C++", "Rust", "Unix / Linux", "Algorithmique"],
+            },
+            {
+                icon: "dns",
+                title: "Backend & DevOps",
+                description: "Architecture d'API évolutives et gestion d'infrastructure. Accent sur l'automatisation, la conteneurisation et le déploiement continu.",
+                skills: ["Java / Node.js / Python", "Docker / Kubernetes", "CI/CD", "SQL / NoSQL"],
+            },
+            {
+                icon: "code",
+                title: "Développement Fullstack",
+                description: "Création d'interfaces utilisateur modernes et réactives intégrées à des backends puissants. Passionné par la performance et l'expérience utilisateur.",
+                skills: ["Angular / React / TypeScript", "Astro / Tailwind", "Next.js", "WebSockets"],
+            },
+        ],
+    },
+};
+
+const t = CONTENT[currentLang];
+---
+
+<section class="py-24 bg-surface-darker border-y border-neutral-900" id="expertise">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-16 reveal">
+            <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">{t.sectionTitle}</h2>
+            <h3 class="text-3xl font-bold text-white">{t.title}</h3>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {t.cards.map((card, index) => (
+                <div class={`reveal reveal-delay-${(index + 1) * 100} h-full`}>
+                    <SkillCard
+                        icon={card.icon}
+                        title={card.title}
+                        description={card.description}
+                        skills={card.skills}
+                    />
+                </div>
+            ))}
+        </div>
+    </div>
+</section>

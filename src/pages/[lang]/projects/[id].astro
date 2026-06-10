@@ -1,0 +1,123 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import Navbar from "../../../components/Navbar.astro";
+import Contact from "../../../components/Contact.astro";
+import { PROJECTS } from "../../../data/projects";
+import { SITE_CONFIG, type Lang } from "../../../config";
+import { Image } from "astro:assets";
+
+export function getStaticPaths() {
+    const paths = [];
+    const langs: Lang[] = ["en", "fr"];
+    
+    for (const lang of langs) {
+        for (const project of PROJECTS[lang]) {
+            paths.push({
+                params: { lang, id: project.id },
+                props: { project },
+            });
+        }
+    }
+    return paths;
+}
+
+const { lang, id } = Astro.params as { lang: Lang; id: string };
+const { project } = Astro.props;
+
+const backLabel = lang === "en" ? "Back to Home" : "Retour à l'accueil";
+---
+
+<Layout title={`${project.title} | ${SITE_CONFIG.name}`} lang={lang}>
+    <Navbar lang={lang} />
+    <main class="pt-32 pb-20">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <a
+                href={`/${lang}#projects`}
+                class="inline-flex items-center text-primary hover:text-white transition-colors mb-12 font-mono text-sm"
+            >
+                <span class="material-icons text-sm mr-2">arrow_back</span>
+                {backLabel}
+            </a>
+
+            <div class="reveal">
+                <div class="h-64 md:h-96 rounded-xl overflow-hidden mb-12 border border-neutral-800">
+                    <Image
+                        src={project.image}
+                        alt={project.imageAlt}
+                        class="w-full h-full object-cover"
+                        width={1200}
+                        height={600}
+                    />
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 lg:grid-rows-1 gap-12">
+
+                    <div class="gap-8 flex flex-col bg-surface-dark p-6 rounded-xl border border-neutral-800">
+
+                        <div class="">
+                            <h1 class="text-3xl font-bold text-white uppercase mb-1">
+                                {project.title}
+                            </h1>
+                            <div class="flex">
+                                <div class="bg-primary/20 backdrop-blur-md text-primary text-xs font-mono px-3 py-1 rounded border border-primary/30">
+                                    {project.badge}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 font-mono text-primary">Stack</h3>
+                            <div class="flex flex-wrap gap-2">
+                                {project.tags.map(tag => (
+                                        <span class="px-3 py-1 bg-surface-dark rounded text-xs text-gray-300 font-mono border border-neutral-800">
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <h3 class="text-sm font-bold text-white uppercase tracking-wider mb-4 font-mono text-primary">Status</h3>
+                            <div class="flex items-center text-gray-400 font-mono text-sm">
+                                <span class="w-2 h-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
+                                {project.statusText}
+                            </div>
+                        </div>
+
+                        {project.actionUrl && (
+                                <div class="pt-4">
+                                    <a
+                                            href={project.actionUrl}
+                                            target="_blank"
+                                            class="w-full inline-flex justify-center items-center px-6 py-3 bg-primary text-white rounded font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                                    >
+                                        <span class="material-icons mr-2 text-sm">launch</span>
+                                        {project.actionType === "visit" ? (lang === "en" ? "Visit Project" : "Visiter le projet") : (lang === "en" ? "View Source" : "Voir le code")}
+                                    </a>
+                                </div>
+                        )}
+                    </div>
+
+                    <div class="lg:col-span-2">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center">
+                            <span class="text-primary font-mono mr-2">01.</span> Overview
+                        </h2>
+                        <div class="text-gray-400 leading-relaxed space-y-4 text-lg">
+                            <p>{project.fullDescription}</p>
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-2 lg:col-start-2 lg:row-start-2">
+                        <h2 class="text-xl font-bold text-white mb-6 flex items-center">
+                            <span class="text-primary font-mono mr-2">02.</span> Architecture
+                        </h2>
+                        <div class="text-gray-400 leading-relaxed space-y-4 text-lg">
+                            <p>{project.architecture}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <Contact lang={lang} />
+</Layout>
