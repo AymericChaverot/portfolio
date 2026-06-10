@@ -38,7 +38,7 @@ export const SITE_CONFIG: {
         fr: "/fr/projects",
     },
     en: {
-        role: "Systems Engineer & Software Architect",
+        role: "Developer and Systems Engineer",
         description: "Specializing in high-performance infrastructure, distributed systems, and low-level engineering. I build robust solutions where efficiency meets scalability.",
         status: {
             available: false,
@@ -56,7 +56,7 @@ export const SITE_CONFIG: {
         }
     },
     fr: {
-        role: "Ingénieur Système & Architecte Logiciel",
+        role: "Développeur et Ingénieur Système",
         description: "Spécialisé dans l'infrastructure haute performance, les systèmes distribués et l'ingénierie bas niveau. Je conçois des solutions robustes où l'efficacité rencontre l'évolutivité.",
         status: {
             available: false,
