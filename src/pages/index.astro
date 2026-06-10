@@ -2,9 +2,46 @@
 // Simple redirect to the default language (French)
 const base = import.meta.env.BASE_URL;
 const redirectUrl = (base + "/fr/").replace(/\/+/g, "/");
+
+// Metadata for crawlers scraping the root URL
+const siteUrl = Astro.site ? Astro.site.href : "https://aymericchaverot.github.io/portfolio/";
+const ogImageUrl = Astro.site ? new URL("og-image.png", Astro.site).href : `${siteUrl}og-image.png`;
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+const title = "Aymeric Chaverot | Portfolio";
+const description = "Portfolio de Aymeric Chaverot - Ingénieur Système & Architecte Logiciel. Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
 ---
 
-<meta http-equiv="refresh" content={`0;url=${redirectUrl}`} />
-<script define:vars={{ redirectUrl }}>
-	window.location.href = redirectUrl;
-</script>
+<!doctype html>
+<html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width" />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+
+        <!-- Open Graph / Facebook -->
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={description} />
+        <meta property="og:image" content={ogImageUrl} />
+
+        <!-- Twitter -->
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content={canonicalUrl} />
+        <meta property="twitter:title" content={title} />
+        <meta property="twitter:description" content={description} />
+        <meta property="twitter:image" content={ogImageUrl} />
+
+        <!-- Theme Color -->
+        <meta name="theme-color" content="#f48c25" />
+
+        <!-- Redirections -->
+        <meta http-equiv="refresh" content={`0;url=${redirectUrl}`} />
+    </head>
+    <body>
+        <script define:vars={{ redirectUrl }}>
+            window.location.href = redirectUrl;
+        </script>
+    </body>
+</html>
