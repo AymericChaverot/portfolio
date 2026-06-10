@@ -5,10 +5,10 @@ const redirectUrl = (base + "/fr/").replace(/\/+/g, "/");
 
 // Metadata for crawlers scraping the root URL
 const siteUrl = Astro.site
-    ? Astro.site.href
+    ? new URL(base, Astro.site).href
     : "https://aymericchaverot.github.io/portfolio/";
 const ogImageUrl = Astro.site
-    ? new URL("og-image.png", Astro.site).href
+    ? new URL((base + "/og-image.png").replace(/\/+/g, "/"), Astro.site).href
     : `${siteUrl}og-image.png`;
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
 const title = "Aymeric Chaverot";
