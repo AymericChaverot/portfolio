@@ -4,11 +4,16 @@ const base = import.meta.env.BASE_URL;
 const redirectUrl = (base + "/fr/").replace(/\/+/g, "/");
 
 // Metadata for crawlers scraping the root URL
-const siteUrl = Astro.site ? Astro.site.href : "https://aymericchaverot.github.io/portfolio/";
-const ogImageUrl = Astro.site ? new URL("og-image.png", Astro.site).href : `${siteUrl}og-image.png`;
+const siteUrl = Astro.site
+    ? Astro.site.href
+    : "https://aymericchaverot.github.io/portfolio/";
+const ogImageUrl = Astro.site
+    ? new URL("og-image.png", Astro.site).href
+    : `${siteUrl}og-image.png`;
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
-const title = "Aymeric Chaverot | Portfolio";
-const description = "Portfolio de Aymeric Chaverot - Ingénieur Système & Architecte Logiciel. Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
+const title = "Aymeric Chaverot";
+const description =
+    "Développeur et Ingénieur Système | Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
 ---
 
 <!doctype html>

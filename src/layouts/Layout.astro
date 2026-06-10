@@ -10,12 +10,17 @@ const { title, lang = "fr" } = Astro.props;
 const base = import.meta.env.BASE_URL;
 
 // Generate absolute URLs for Open Graph metadata
-const siteUrl = Astro.site ? Astro.site.href : "https://aymericchaverot.github.io/portfolio/";
-const ogImageUrl = Astro.site ? new URL("og-image.png", Astro.site).href : `${siteUrl}og-image.png`;
+const siteUrl = Astro.site
+    ? Astro.site.href
+    : "https://aymericchaverot.github.io/portfolio/";
+const ogImageUrl = Astro.site
+    ? new URL("og-image.png", Astro.site).href
+    : `${siteUrl}og-image.png`;
 const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
-const description = lang === "en"
-    ? "Systems Engineer & Software Architect Portfolio. High-performance infrastructure, distributed systems, and low-level engineering."
-    : "Portfolio de Aymeric Chaverot - Ingénieur Système & Architecte Logiciel. Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
+const description =
+    lang === "en"
+        ? "Developer and Systems Engineer | High-performance infrastructure, distributed systems, and low-level engineering."
+        : "Développeur et Ingénieur Système | Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
 ---
 
 <!doctype html>
@@ -25,7 +30,11 @@ const description = lang === "en"
         <meta name="description" content={description} />
         <meta name="viewport" content="width=device-width" />
         <meta name="generator" content={Astro.generator} />
-        <link rel="icon" type="image/svg+xml" href={(base + "/favicon.svg").replace(/\/+/g, "/")} />
+        <link
+            rel="icon"
+            type="image/svg+xml"
+            href={(base + "/favicon.svg").replace(/\/+/g, "/")}
+        />
         <title>{title}</title>
 
         <!-- Open Graph / Facebook -->
@@ -54,14 +63,21 @@ const description = lang === "en"
         />
 
         <!-- Icons -->
-        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        />
 
         <!-- Dark mode: applied before paint to avoid flash -->
         <script is:inline>
             if (
                 localStorage.theme === "dark" ||
-                (!("theme" in localStorage) && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                (!("theme" in localStorage) &&
+                    window.matchMedia("(prefers-color-scheme: dark)").matches)
             ) {
                 document.documentElement.classList.add("dark");
             } else {
@@ -69,7 +85,9 @@ const description = lang === "en"
             }
         </script>
     </head>
-    <body class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-display min-h-screen relative">
+    <body
+        class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-display min-h-screen relative"
+    >
         <div id="spotlight" class="spotlight"></div>
         <slot />
 
@@ -86,17 +104,19 @@ const description = lang === "en"
                 targetY = e.clientY;
             });
 
-            document.querySelectorAll('[data-spotlight="true"]').forEach((card) => {
-                card.addEventListener("mouseenter", () => {
-                    const rect = card.getBoundingClientRect();
-                    targetX = rect.left + rect.width / 2;
-                    targetY = rect.top + rect.height / 2;
-                    spotlight?.classList.add("active-card");
+            document
+                .querySelectorAll('[data-spotlight="true"]')
+                .forEach((card) => {
+                    card.addEventListener("mouseenter", () => {
+                        const rect = card.getBoundingClientRect();
+                        targetX = rect.left + rect.width / 2;
+                        targetY = rect.top + rect.height / 2;
+                        spotlight?.classList.add("active-card");
+                    });
+                    card.addEventListener("mouseleave", () => {
+                        spotlight?.classList.remove("active-card");
+                    });
                 });
-                card.addEventListener("mouseleave", () => {
-                    spotlight?.classList.remove("active-card");
-                });
-            });
 
             function animateSpotlight() {
                 if (!spotlight) return;
@@ -110,11 +130,16 @@ const description = lang === "en"
 
             // ── Scroll reveal ────────────────────────────────────────
             const observer = new IntersectionObserver(
-                (entries) => entries.forEach((e) => { if (e.isIntersecting) e.target.classList.add("active"); }),
-                { threshold: 0.1 }
+                (entries) =>
+                    entries.forEach((e) => {
+                        if (e.isIntersecting) e.target.classList.add("active");
+                    }),
+                { threshold: 0.1 },
             );
 
-            document.querySelectorAll(".reveal").forEach((el) => observer.observe(el));
+            document
+                .querySelectorAll(".reveal")
+                .forEach((el) => observer.observe(el));
         </script>
     </body>
 </html>
