@@ -45,7 +45,7 @@ const description =
         <meta http-equiv="refresh" content={`0;url=${redirectUrl}`} />
     </head>
     <body>
-        <script define:vars={{ redirectUrl }}>
+        <script is:inline define:vars={{ redirectUrl }}>
             window.location.href = redirectUrl;
         </script>
     </body>

@@ -1,4 +1,4 @@
-import type { Lang } from "./config";
+import type { Lang } from "../config";
 
 export interface Project {
     id: string;

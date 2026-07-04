@@ -21,7 +21,7 @@ export function getStaticPaths() {
     return paths;
 }
 
-const { lang, id } = Astro.params as { lang: Lang; id: string };
+const { lang } = Astro.params as { lang: Lang };
 const { project } = Astro.props;
 
 const backLabel = lang === "en" ? "Back to Home" : "Retour à l'accueil";

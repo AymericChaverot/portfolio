@@ -8,7 +8,9 @@ interface Props {
     tags: string[];
     icon?: string;
     current?: boolean;
+    badge?: string;
     logo?: string;
+    side?: "left" | "right";
 }
 
 const {
@@ -20,14 +22,16 @@ const {
     tags,
     icon = "work",
     current = false,
+    badge = "En poste",
     logo,
+    side = "left",
 } = Astro.props;
 
 const base = import.meta.env.BASE_URL;
 const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
 ---
 
-<article class="exp-card">
+<article class:list={["exp-card", { "exp-card--right": side === "right" }]}>
     <div class="timeline-dot" aria-hidden="true">
         <span class="material-icons">{icon}</span>
     </div>
@@ -47,7 +51,7 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
                 {current && (
                     <span class="exp-badge">
                         <span class="exp-badge-dot" />
-                        En poste
+                        {badge}
                     </span>
                 )}
             </div>
@@ -147,6 +151,20 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
         filter: none;
     }
 
+    /* Logo miroir : en haut à gauche sur les cards côté droit */
+    .exp-card--right .exp-logo-wrap {
+        right: auto;
+        left: 0;
+        mask-image: radial-gradient(ellipse 100% 100% at 0% 0%, black 30%, transparent 75%);
+        -webkit-mask-image: radial-gradient(ellipse 100% 100% at 0% 0%, black 30%, transparent 75%);
+    }
+
+    .exp-card--right .exp-logo {
+        right: auto;
+        left: 0.75rem;
+        object-position: top left;
+    }
+
     /* ── Card inner ── */
     .exp-card-inner {
         flex: 1;
@@ -181,8 +199,39 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
         transform: translateX(4px);
     }
 
+    /* ── Mirrored variant: timeline dot on the right, content mirrored ── */
+    .exp-card--right {
+        flex-direction: row-reverse;
+    }
+
+    .exp-card--right:hover .exp-card-inner {
+        transform: translateX(-4px);
+    }
+
+    .exp-card--right .exp-card-inner {
+        text-align: right;
+    }
+
+    .exp-card--right .exp-card-inner::before {
+        background: linear-gradient(225deg, rgba(244, 140, 37, 0.04) 0%, transparent 60%);
+    }
+
+    .exp-card--right .exp-meta,
+    .exp-card--right .exp-company-line,
+    .exp-card--right .exp-tags {
+        justify-content: flex-end;
+    }
+
     .exp-card:hover .exp-card-inner::before {
         opacity: 1;
+    }
+
+    /* Le contenu texte passe au-dessus du logo (positionné, donc peint après) */
+    .exp-card-header,
+    .exp-description,
+    .exp-tags {
+        position: relative;
+        z-index: 1;
     }
 
     /* ── Header ── */
