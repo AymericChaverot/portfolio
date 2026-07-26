@@ -1,0 +1,12 @@
+node_modules
+.astro
+dist
+.git
+.github
+.idea
+.vscode
+.claude
+npm-debug.log
+Dockerfile
+.dockerignore
+nginx.conf
