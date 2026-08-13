@@ -1,4 +1,7 @@
 ---
+import HeroTerrain from "./HeroTerrain.astro";
+import HeroFlow from "./HeroFlow.astro";
+import HeroGlobe from "./HeroGlobe.astro";
 import { getSettings } from "../lib/content";
 import { highlightCode } from "../lib/highlight";
 import type { Lang } from "../lib/i18n";
@@ -13,40 +16,58 @@ const settings = getSettings(lang);
 
 // Le code du terminal est saisi en clair dans l'admin puis coloré ici :
 // aucun HTML n'est stocké en base.
-const lines = highlightCode(settings.heroTerminalCode);
+const lines =
+    settings.heroVisual === "terminal"
+        ? highlightCode(settings.heroTerminalCode)
+        : [];
 
-const projectsAnchor = "#projects";
-const contactAnchor = "#contact";
+/**
+ * Visuels animés en canvas, interchangeables au même emplacement.
+ * Le type autorise explicitement `undefined` : les variantes « aucun » et
+ * « terminal » n'ont pas d'entrée ici.
+ */
+const CANVAS_VISUALS: Record<string, typeof HeroTerrain | undefined> = {
+    terrain: HeroTerrain,
+    flow: HeroFlow,
+    globe: HeroGlobe,
+};
+
+const CanvasVisual = CANVAS_VISUALS[settings.heroVisual];
+
+// Les visuels animés occupent tout le fond de la section : le texte se
+// centre par-dessus. Seul le terminal reste une colonne à droite.
+const centered = settings.heroVisual !== "terminal" || lines.length === 0;
 ---
 
 <header
-    class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-background-dark"
+    class:list={["hero", centered && "hero--centered"]}
     id="hero"
 >
-    <!-- Background effects -->
-    <div class="absolute inset-0 z-0 opacity-40 pointer-events-none">
-        <div
-            class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent"
-        >
-        </div>
-        <div
-            class="w-full h-full"
-            style="background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 30px 30px;"
-        >
-        </div>
+    <!-- Fonds -->
+    <div class="hero-backdrop" aria-hidden="true">
+        <div class="hero-grid"></div>
+        {
+            CanvasVisual && (
+                <div class="hero-canvas">
+                    <CanvasVisual />
+                </div>
+            )
+        }
+        <div class="hero-glow"></div>
+        {CanvasVisual && <div class="hero-scrim"></div>}
     </div>
 
-    <div
-        class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center"
-    >
-        <div class="lg:w-1/2 text-left reveal">
+    <div class="hero-inner">
+        <div class="hero-copy reveal">
             {
                 settings.statusText && (
-                    <div class="inline-flex items-center px-3 py-1 rounded border border-neutral-800 bg-surface-dark text-gray-400 text-xs font-mono mb-6">
+                    <div class="hero-status">
                         <span
                             class:list={[
-                                "w-2 h-2 rounded-full mr-2 animate-pulse",
-                                settings.statusAvailable ? "bg-green-500" : "bg-red-500",
+                                "hero-status-dot",
+                                settings.statusAvailable
+                                    ? "hero-status-dot--on"
+                                    : "hero-status-dot--off",
                             ]}
                         />
                         {settings.statusText}
@@ -54,45 +75,36 @@ const contactAnchor = "#contact";
                 )
             }
 
-            <h1
-                class="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-4 reveal reveal-delay-100"
-            >
-                {settings.name}
-            </h1>
+            <h1 class="hero-name reveal reveal-delay-100">{settings.name}</h1>
 
             {
                 settings.role && (
-                    <h2 class="font-mono text-2xl md:text-3xl text-primary font-light mb-6 reveal reveal-delay-200">
-                        {settings.role}
-                    </h2>
+                    <p class="hero-role reveal reveal-delay-200">{settings.role}</p>
                 )
             }
 
             {
                 settings.description && (
-                    <p class="text-lg text-gray-400 mb-8 max-w-lg leading-relaxed reveal reveal-delay-300">
+                    <p class="hero-description reveal reveal-delay-300">
                         {settings.description}
                     </p>
                 )
             }
 
-            <div class="flex flex-col sm:flex-row gap-4 reveal reveal-delay-300">
+            <div class="hero-actions reveal reveal-delay-300">
                 {
                     settings.heroCtaPrimary && (
-                        <a
-                            class="inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                            href={projectsAnchor}
-                        >
+                        <a class="hero-button hero-button--primary" href="#projects">
                             {settings.heroCtaPrimary}
+                            <span class="material-icons hero-button-icon">
+                                arrow_downward
+                            </span>
                         </a>
                     )
                 }
                 {
                     settings.heroCtaSecondary && (
-                        <a
-                            class="inline-flex justify-center items-center px-8 py-3 border border-neutral-700 text-base font-medium rounded text-gray-300 hover:border-primary hover:text-primary transition-all bg-surface-dark"
-                            href={contactAnchor}
-                        >
+                        <a class="hero-button hero-button--ghost" href="#contact">
                             {settings.heroCtaSecondary}
                         </a>
                     )
@@ -101,33 +113,31 @@ const contactAnchor = "#contact";
         </div>
 
         {
-            lines.length > 0 && (
-                <div class="lg:w-1/2 mt-12 lg:mt-0 lg:pl-12 w-full reveal reveal-delay-200">
-                    <div class="relative rounded-lg bg-black border border-neutral-800 shadow-2xl overflow-hidden font-mono text-sm leading-relaxed">
-                        <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-surface-dark">
-                            <div class="flex space-x-2">
-                                <div class="w-3 h-3 rounded-full bg-red-500/80" />
-                                <div class="w-3 h-3 rounded-full bg-yellow-500/80" />
-                                <div class="w-3 h-3 rounded-full bg-green-500/80" />
+            settings.heroVisual === "terminal" && lines.length > 0 && (
+                <div class="hero-visual reveal reveal-delay-200">
+                    <div class="terminal">
+                        <div class="terminal-bar">
+                            <div class="terminal-dots">
+                                <span />
+                                <span />
+                                <span />
                             </div>
-                            <div class="text-xs text-gray-500 truncate px-2">
+                            <span class="terminal-title">
                                 {settings.heroTerminalTitle}
-                            </div>
-                            <div class="w-8" />
+                            </span>
+                            <span class="terminal-spacer" />
                         </div>
-
-                        <div class="p-4 sm:p-6 text-gray-300 overflow-x-auto bg-black/50">
+                        <div class="terminal-body">
                             {lines.map((line) => (
-                                <div class="flex">
-                                    <span class="text-gray-700 select-none mr-4 text-right w-6 shrink-0">
-                                        {line.number}
-                                    </span>
-                                    <span class="whitespace-pre">
+                                <div class="terminal-line">
+                                    <span class="terminal-number">{line.number}</span>
+                                    <span class="terminal-code">
                                         <Fragment set:html={line.html} />
                                     </span>
                                 </div>
                             ))}
-                            <div class="flex mt-2">
+                            <div class="terminal-line">
+                                <span class="terminal-number" />
                                 <span class="text-primary animate-blink">█</span>
                             </div>
                         </div>
@@ -137,3 +147,320 @@ const contactAnchor = "#contact";
         }
     </div>
 </header>
+
+<style>
+    /* ── Structure ── */
+    .hero {
+        position: relative;
+        overflow: hidden;
+        background: var(--color-background-dark);
+        padding: 10rem 1.5rem 6rem;
+    }
+
+    @media (min-width: 1024px) {
+        .hero {
+            padding: 12rem 2rem 8rem;
+        }
+    }
+
+    .hero-inner {
+        position: relative;
+        z-index: 1;
+        max-width: 78rem;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 3.5rem;
+        align-items: center;
+    }
+
+    @media (min-width: 1024px) {
+        .hero-inner {
+            grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+            gap: 4rem;
+        }
+    }
+
+    /* Variante sans visuel : une seule colonne, centrée. */
+    .hero--centered .hero-inner {
+        grid-template-columns: 1fr;
+        max-width: 52rem;
+        text-align: center;
+    }
+
+    .hero--centered .hero-status,
+    .hero--centered .hero-actions {
+        justify-content: center;
+    }
+
+    .hero--centered .hero-description {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero--centered .hero-name {
+        font-size: clamp(3rem, 9vw, 5.5rem);
+    }
+
+    /* ── Fonds ── */
+    .hero-backdrop {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+    }
+
+    .hero-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+        background-size: 44px 44px;
+        /* La grille s'efface vers le bas pour ne pas heurter la section
+           suivante par une ligne franche. */
+        mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent 100%);
+        -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black, transparent 100%);
+    }
+
+    /* Halo circulaire. Il couvre tout le fond et c'est le dégradé qui le
+       place : un élément plus petit débordant du hero serait coupé net par
+       l'`overflow: hidden`, laissant un bord franc. */
+    .hero-glow {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            circle 26rem at 76% 30%,
+            rgba(244, 140, 37, 0.12),
+            transparent 70%
+        );
+    }
+
+    .hero--centered .hero-glow {
+        background: radial-gradient(
+            circle 30rem at 50% 42%,
+            rgba(244, 140, 37, 0.11),
+            transparent 70%
+        );
+    }
+
+    /* Voile de lisibilité : le texte passe au-dessus du visuel animé. */
+    .hero-canvas {
+        position: absolute;
+        inset: 0;
+    }
+
+    .hero-scrim {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+            circle 34rem at 50% 45%,
+            rgba(5, 5, 5, 0.82),
+            rgba(5, 5, 5, 0.45) 55%,
+            transparent 80%
+        );
+    }
+
+    /* ── Statut ── */
+    .hero-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px var(--hairline);
+        background: rgba(255, 255, 255, 0.02);
+        color: var(--color-muted);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.02em;
+        margin-bottom: 1.75rem;
+    }
+
+    .hero-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+    }
+
+    .hero-status-dot--on {
+        background: #4ade80;
+        box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.15);
+        animation: status-pulse 2.4s ease-in-out infinite;
+    }
+
+    /* Rouge quand indisponible : c'est le signal voulu, pas une couleur
+       d'accent. */
+    .hero-status-dot--off {
+        background: #ef4444;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+        animation: status-pulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes status-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.45; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .hero-status-dot--on,
+        .hero-status-dot--off {
+            animation: none;
+        }
+    }
+
+    /* ── Typographie ── */
+    .hero-name {
+        font-size: clamp(2.75rem, 7vw, 4.75rem);
+        font-weight: 700;
+        letter-spacing: -0.035em;
+        line-height: 0.98;
+        color: #faf8f6;
+        margin: 0 0 1rem;
+    }
+
+    .hero-role {
+        font-family: var(--font-mono);
+        font-size: clamp(1rem, 2vw, 1.4rem);
+        font-weight: 400;
+        letter-spacing: -0.01em;
+        color: var(--color-primary);
+        margin: 0 0 1.5rem;
+    }
+
+    .hero-description {
+        font-size: 1.0625rem;
+        line-height: 1.75;
+        color: var(--color-muted);
+        max-width: 34rem;
+        margin: 0 0 2.25rem;
+    }
+
+    /* ── Boutons ── */
+    .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .hero-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.8rem 1.5rem;
+        border-radius: 999px;
+        font-size: 0.9375rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition:
+            background 0.2s ease,
+            box-shadow 0.2s ease,
+            color 0.2s ease,
+            transform 0.2s ease;
+    }
+
+    .hero-button:hover {
+        transform: translateY(-1px);
+    }
+
+    .hero-button--primary {
+        background: var(--color-primary);
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(244, 140, 37, 0.22);
+    }
+
+    .hero-button--primary:hover {
+        background: #ff9a33;
+        box-shadow: 0 10px 28px rgba(244, 140, 37, 0.32);
+    }
+
+    .hero-button-icon {
+        font-size: 1rem !important;
+        opacity: 0.8;
+    }
+
+    .hero-button--ghost {
+        color: #e8e4df;
+        box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    }
+
+    .hero-button--ghost:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 0 0 1px rgba(244, 140, 37, 0.4);
+    }
+
+    /* ── Terminal (variante conservée) ── */
+    .hero-visual {
+        min-width: 0;
+    }
+
+    .terminal {
+        border-radius: var(--radius-card);
+        overflow: hidden;
+        background: #070707;
+        box-shadow:
+            inset 0 0 0 1px var(--hairline),
+            0 20px 50px rgba(0, 0, 0, 0.5);
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        line-height: 1.7;
+    }
+
+    .terminal-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.7rem 0.9rem;
+        background: rgba(255, 255, 255, 0.02);
+        box-shadow: inset 0 -1px 0 0 var(--hairline);
+    }
+
+    .terminal-dots {
+        display: flex;
+        gap: 0.4rem;
+    }
+
+    .terminal-dots span {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.14);
+    }
+
+    .terminal-title {
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.35);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 0 0.5rem;
+    }
+
+    .terminal-spacer {
+        width: 2.5rem;
+        flex-shrink: 0;
+    }
+
+    .terminal-body {
+        padding: 1.25rem 1rem;
+        overflow-x: auto;
+        color: #cfc9c2;
+    }
+
+    .terminal-line {
+        display: flex;
+    }
+
+    .terminal-number {
+        width: 1.75rem;
+        flex-shrink: 0;
+        text-align: right;
+        margin-right: 1rem;
+        color: rgba(255, 255, 255, 0.18);
+        user-select: none;
+    }
+
+    .terminal-code {
+        white-space: pre;
+    }
+</style>

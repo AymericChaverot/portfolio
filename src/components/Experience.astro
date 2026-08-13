@@ -21,6 +21,28 @@ const delayClass = (index: number) =>
     ["", "reveal-delay-100", "reveal-delay-200", "reveal-delay-300"][
         Math.min(index, 3)
     ];
+
+/**
+ * Traînée de la tête lumineuse.
+ *
+ * Un seul trait de longueur fixe donnait un rectangle arrondi qui suivait le
+ * point : opacité et épaisseur constantes sur toute la longueur, donc pas de
+ * fondu. On la découpe ici en segments consécutifs, chacun un peu plus fin et
+ * un peu plus transparent que le précédent. Un dégradé SVG ne conviendrait
+ * pas : la ligne change de direction (verticale, horizontale, verticale) alors
+ * qu'un `linearGradient` est fixe dans l'espace — la décroissance doit suivre
+ * la courbe, pas l'écran.
+ */
+const TRAIL_SEGMENTS = 14;
+const trail = Array.from({ length: TRAIL_SEGMENTS }, (_, i) => {
+    const t = i / TRAIL_SEGMENTS; // 0 = collé à la tête, 1 = extrémité
+    return {
+        // Décroissances non linéaires : l'essentiel du fondu se joue loin de
+        // la tête, ce qui allonge visuellement la queue au lieu de la couper.
+        width: 7.5 - 5.6 * Math.pow(t, 0.75),
+        opacity: 0.55 * Math.pow(1 - t, 1.7),
+    };
+});
 ---
 
 {
@@ -46,12 +68,32 @@ const delayClass = (index: number) =>
                                 <stop offset="0" stop-color="#f48c25" />
                                 <stop offset="1" stop-color="rgba(244, 140, 37, 0.5)" />
                             </linearGradient>
-                            <filter id="journey-blur">
-                                <feGaussianBlur stdDeviation="3" />
+                            <filter
+                                id="journey-blur"
+                                x="-50%"
+                                y="-50%"
+                                width="200%"
+                                height="200%"
+                            >
+                                <feGaussianBlur stdDeviation="3.5" />
                             </filter>
                         </defs>
                         <path class="journey-track" id="journey-track" />
-                        <path class="journey-glow" id="journey-glow" />
+                        {/* Le flou est porté par le groupe : appliqué segment
+                            par segment il redessinerait les jointures. */}
+                        <g
+                            class="journey-trail"
+                            id="journey-trail"
+                            filter="url(#journey-blur)"
+                        >
+                            {trail.map((seg) => (
+                                <path
+                                    class="journey-trail-seg"
+                                    stroke-width={seg.width.toFixed(2)}
+                                    stroke-opacity={seg.opacity.toFixed(3)}
+                                />
+                            ))}
+                        </g>
                         <path class="journey-fill" id="journey-fill" />
                     </svg>
                     <div class="journey-tip" id="journey-tip" aria-hidden="true" />
@@ -61,12 +103,12 @@ const delayClass = (index: number) =>
                             {(group.eyebrow || group.heading) && (
                                 <div class="text-center mb-16 reveal">
                                     {group.eyebrow && (
-                                        <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
+                                        <h2 class="section-eyebrow">
                                             {group.eyebrow}
                                         </h2>
                                     )}
                                     {group.heading && (
-                                        <h3 class="text-3xl font-bold text-white">
+                                        <h3 class="section-heading">
                                             {group.heading}
                                         </h3>
                                     )}
@@ -154,15 +196,24 @@ const delayClass = (index: number) =>
         will-change: stroke-dashoffset;
     }
 
-    /* Glow trail — short blurred dash trailing behind the tip */
-    .journey-glow {
-        fill: none;
-        stroke: rgba(244, 140, 37, 0.45);
-        stroke-width: 7;
-        stroke-linecap: round;
-        filter: url(#journey-blur);
+    /* Traînée : segments jointifs derrière la tête, du plus épais au plus fin */
+    .journey-trail {
         opacity: var(--tip-opacity, 0);
-        will-change: stroke-dashoffset, opacity;
+        will-change: opacity;
+    }
+
+    .journey-trail-seg {
+        fill: none;
+        stroke: #f48c25;
+        /* Bouts francs : les segments doivent s'aboucher exactement, un bout
+           arrondi ferait renfler chaque jonction. Le flou lisse les marches. */
+        stroke-linecap: butt;
+        will-change: stroke-dashoffset;
+    }
+
+    /* Seul le segment de tête garde un bout rond, pour épouser l'orbe. */
+    .journey-trail-seg:first-child {
+        stroke-linecap: round;
     }
 
     /* Tip glow orb — follows the path via transform */
@@ -215,7 +266,7 @@ const delayClass = (index: number) =>
         const svg = document.getElementById("journey-svg");
         const track = document.getElementById("journey-track");
         const fill = document.getElementById("journey-fill");
-        const glow = document.getElementById("journey-glow");
+        const trailGroup = document.getElementById("journey-trail");
         const tip = document.getElementById("journey-tip");
         const grad = document.getElementById("journey-grad");
 
@@ -225,11 +276,17 @@ const delayClass = (index: number) =>
             !svg ||
             !tip ||
             !grad ||
+            !trailGroup ||
             !(track instanceof SVGPathElement) ||
-            !(fill instanceof SVGPathElement) ||
-            !(glow instanceof SVGPathElement)
+            !(fill instanceof SVGPathElement)
         )
             return;
+
+        const trailSegs = Array.from(
+            trailGroup.querySelectorAll(".journey-trail-seg"),
+        ).filter((el): el is SVGPathElement => el instanceof SVGPathElement);
+
+        if (!trailSegs.length) return;
 
         // Alias non-null : le narrowing ci-dessus ne se propage pas dans
         // les fonctions imbriquées, ces const gardent le type affiné.
@@ -239,7 +296,7 @@ const delayClass = (index: number) =>
         const gradEl = grad;
         const trackEl = track;
         const fillEl = fill;
-        const glowEl = glow;
+        const trailEl = trailGroup;
         const tipEl = tip;
 
         // ── Réglages ────────────────────────────────────────────────
@@ -248,7 +305,7 @@ const delayClass = (index: number) =>
         const START = 0.2;
         const END = 0.7;
         const GLOW_FADE_START = 0.85; // le halo s'estompe en fin de course
-        const GLOW_LEN = 60; // longueur de la traînée lumineuse (px)
+        const SEG_LEN = 9; // longueur d'un segment de traînée (px)
         const END_INSET = 22; // arrêt de la ligne avant le bas du dernier groupe (px)
         const CORNER_RADIUS = 12; // arrondi des angles droits (px, 0 = angles vifs)
 
@@ -337,11 +394,17 @@ const delayClass = (index: number) =>
             gradEl.setAttribute("y2", String(height));
             trackEl.setAttribute("d", d);
             fillEl.setAttribute("d", d);
-            glowEl.setAttribute("d", d);
 
             totalLength = fillEl.getTotalLength();
             fillEl.style.strokeDasharray = `${totalLength} ${totalLength}`;
-            glowEl.style.strokeDasharray = `${GLOW_LEN} ${totalLength}`;
+
+            // Chaque segment suit le même tracé : seul son décalage change.
+            // Le sur-longueur de 6 % évite le liseré sombre d'anticrénelage à
+            // la jonction, sans éclaircir visiblement le recouvrement.
+            trailSegs.forEach((seg) => {
+                seg.setAttribute("d", d);
+                seg.style.strokeDasharray = `${SEG_LEN * 1.06} ${totalLength}`;
+            });
 
             lastProgress = -1;
             updateLine();
@@ -364,7 +427,12 @@ const delayClass = (index: number) =>
 
             const drawn = progress * totalLength;
             fillEl.style.strokeDashoffset = String(totalLength - drawn);
-            glowEl.style.strokeDashoffset = String(GLOW_LEN - drawn);
+
+            // Segment i occupe [drawn - (i+1)·SEG_LEN, drawn - i·SEG_LEN] :
+            // il s'éloigne de la tête à mesure que i grandit.
+            trailSegs.forEach((seg, i) => {
+                seg.style.strokeDashoffset = String((i + 1) * SEG_LEN - drawn);
+            });
 
             const tipRaw =
                 progress < GLOW_FADE_START
@@ -372,7 +440,7 @@ const delayClass = (index: number) =>
                     : 1 - (progress - GLOW_FADE_START) / (1 - GLOW_FADE_START);
             const tipOpacity = Math.max(0, Math.min(1, tipRaw)).toFixed(3);
 
-            glowEl.style.setProperty("--tip-opacity", tipOpacity);
+            trailEl.style.setProperty("--tip-opacity", tipOpacity);
             tipEl.style.setProperty("--tip-opacity", tipOpacity);
 
             const pt = fillEl.getPointAtLength(drawn);

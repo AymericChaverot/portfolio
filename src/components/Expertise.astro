@@ -29,17 +29,17 @@ const delayClass = (index: number) =>
                 {(section?.eyebrow || section?.heading) && (
                     <div class="text-center mb-16 reveal">
                         {section.eyebrow && (
-                            <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
+                            <h2 class="section-eyebrow">
                                 {section.eyebrow}
                             </h2>
                         )}
                         {section.heading && (
-                            <h3 class="text-3xl font-bold text-white">
+                            <h3 class="section-heading">
                                 {section.heading}
                             </h3>
                         )}
                         {section.subheading && (
-                            <p class="text-gray-400 max-w-2xl mx-auto mt-4">
+                            <p class="section-subheading max-w-2xl mx-auto">
                                 {section.subheading}
                             </p>
                         )}
@@ -48,13 +48,24 @@ const delayClass = (index: number) =>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {cards.map((card, index) => (
-                        <div class:list={["reveal h-full", delayClass(index)]}>
+                        <div
+                            class:list={[
+                                "reveal h-full layer-cell",
+                                delayClass(index),
+                            ]}
+                        >
                             <SkillCard
                                 icon={card.icon}
                                 title={card.title}
                                 description={card.description}
                                 skills={card.skills}
                             />
+
+                            <span class="layer-link" aria-hidden="true">
+                                <span class="layer-dot" />
+                                <span class="layer-dot" />
+                                <span class="layer-dot" />
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -62,3 +73,106 @@ const delayClass = (index: number) =>
         </section>
     )
 }
+
+<style>
+    /* ── Liaisons entre les cartes ──
+       Chaque carte porte le trait qui la relie à sa voisine de droite : il
+       occupe la gouttière de la grille (gap-8 = 2rem) et se cale sur la
+       hauteur des icônes, pour lire les cartes comme des couches successives
+       qui se passent l'information. */
+    .layer-cell {
+        position: relative;
+    }
+
+    .layer-link {
+        position: absolute;
+        top: 3.125rem;
+        left: 100%;
+        width: 2rem;
+        height: 1px;
+        display: none;
+        pointer-events: none;
+        background: linear-gradient(
+            90deg,
+            rgba(244, 140, 37, 0.08),
+            rgba(244, 140, 37, 0.55),
+            rgba(244, 140, 37, 0.08)
+        );
+    }
+
+    .layer-dot {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        width: 3px;
+        height: 3px;
+        margin-top: -1.5px;
+        border-radius: 999px;
+        background: var(--color-primary);
+        box-shadow: 0 0 6px rgba(244, 140, 37, 0.9);
+        animation: layer-flow 2.6s linear infinite;
+    }
+
+    .layer-dot:nth-child(2) {
+        animation-delay: 0.85s;
+    }
+
+    .layer-dot:nth-child(3) {
+        animation-delay: 1.7s;
+    }
+
+    @keyframes layer-flow {
+        0% {
+            transform: translateX(0);
+            opacity: 0;
+        }
+
+        15%,
+        85% {
+            opacity: 1;
+        }
+
+        100% {
+            transform: translateX(calc(2rem - 3px));
+            opacity: 0;
+        }
+    }
+
+    /* Le trait n'apparaît qu'entre deux cartes réellement côte à côte : il
+       dépend donc du nombre de colonnes, donc du point de rupture. */
+    @media (min-width: 768px) {
+        .layer-cell:nth-child(odd) .layer-link {
+            display: block;
+        }
+    }
+
+    @media (min-width: 1024px) {
+        .layer-cell .layer-link {
+            display: block;
+        }
+
+        .layer-cell:nth-child(3n) .layer-link {
+            display: none;
+        }
+    }
+
+    /* Dernière carte : rien à relier à droite, quel que soit le format. */
+    .layer-cell:last-child .layer-link {
+        display: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .layer-dot {
+            animation: none;
+            opacity: 0.7;
+        }
+
+        .layer-dot:nth-child(2) {
+            transform: translateX(calc(1rem - 1.5px));
+        }
+
+        .layer-dot:nth-child(3) {
+            transform: translateX(calc(2rem - 3px));
+        }
+    }
+</style>

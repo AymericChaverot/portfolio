@@ -82,7 +82,7 @@ export async function seed(): Promise<void> {
             id, name, role, description, location,
             status_available, status_text,
             hero_cta_primary, hero_cta_secondary,
-            hero_terminal_title, hero_terminal_code,
+            hero_visual, hero_terminal_title, hero_terminal_code,
             contact_user, contact_command, contact_lines, contact_send_email,
             footer_text, footer_subtext,
             seo_title, seo_description, og_image_id,
@@ -91,7 +91,7 @@ export async function seed(): Promise<void> {
             1, ?, ?, ?, ?,
             ?, ?,
             ?, ?,
-            ?, ?,
+            ?, ?, ?,
             ?, ?, ?, ?,
             ?, ?,
             ?, ?, ?,
@@ -108,6 +108,7 @@ export async function seed(): Promise<void> {
         i18n("Actuellement en poste @ Thales", "Currently in position @ Thales"),
         i18n("Voir mes projets", "View Work"),
         i18n("Me contacter", "Contact Me"),
+        "terrain",
         "profile.rs — neovim",
         i18n(HERO_CODE_FR, HERO_CODE_EN),
         "guest@aymeric",
@@ -189,6 +190,12 @@ export async function seed(): Promise<void> {
         {
             key: "contact",
             nav: ["Me Contacter", "Contact Me"],
+            eyebrow: ["Contact", "Contact"],
+            heading: ["Parlons de votre projet", "Let's talk about your project"],
+            subheading: [
+                "Une question, une opportunité, ou simplement l'envie d'échanger sur un sujet technique ? Ma boîte est ouverte.",
+                "A question, an opportunity, or just the urge to discuss something technical? My inbox is open.",
+            ],
         },
     ];
 

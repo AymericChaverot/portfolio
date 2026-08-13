@@ -11,15 +11,15 @@ const { lang } = Astro.props;
 const settings = getSettings(lang);
 const sections = getSections(lang).filter((s) => s.inNav && s.navLabel);
 
-// La dernière section « contact » devient le bouton d'appel à l'action,
-// les autres sont des liens simples.
+// La section « contact » devient le bouton d'appel à l'action, les autres
+// restent des liens simples.
 const ctaSection = sections.find((s) => s.key === "contact");
 const linkSections = sections.filter((s) => s !== ctaSection);
 
 const home = `/${lang}`;
 const pathname = Astro.url.pathname.replace(/\/+$/, "") || "/";
 
-// Sur l'accueil, on garde des ancres pures pour que le défilement soit
+// Sur l'accueil, on garde des ancres pures pour que le défilement reste
 // fluide ; ailleurs, il faut un lien absolu qui ramène à la page d'accueil.
 const isHome = pathname === home;
 const anchor = (key: string) => (isHome ? `#${key}` : `${home}#${key}`);
@@ -27,159 +27,513 @@ const anchor = (key: string) => (isHome ? `#${key}` : `${home}#${key}`);
 const otherLang: Lang = lang === "fr" ? "en" : "fr";
 const otherLangHref = switchLangPath(Astro.url.pathname, otherLang);
 
-const projectsHref = `/${lang}/projects`;
-const resumeHref = `/${lang}/resume`;
-
 const labels = {
-    fr: { menu: "Menu", close: "Fermer le menu", open: "Ouvrir le menu", resume: "CV" },
-    en: { menu: "Menu", close: "Close menu", open: "Open menu", resume: "Resume" },
+    fr: { close: "Fermer le menu", open: "Ouvrir le menu", resume: "CV", all: "Tous les projets" },
+    en: { close: "Close menu", open: "Open menu", resume: "Resume", all: "All projects" },
 }[lang];
+
+// Initiales pour la pastille du logo : compacte, elle tient dans la pilule.
+const initials = settings.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "")
+    .join("");
 ---
 
-<nav class="fixed top-0 w-full z-50 glass-panel" id="navbar">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-20">
-            <div class="flex-shrink-0">
-                <a
-                    class="font-mono text-lg sm:text-xl font-bold text-white tracking-tighter flex items-center gap-1"
-                    href={home}
-                >
-                    <span class="text-primary">&lt;</span>{
-                        settings.name.replace(/\s+/g, "_")
-                    }<span class="text-primary">&nbsp;/&gt;</span>
-                </a>
-            </div>
+<header class="site-nav" id="navbar">
+    <div class="site-nav-inner">
+        <!-- Pilule de gauche : identité -->
+        <a class="nav-cluster nav-brand glass" href={home}>
+            <span class="nav-mark" aria-hidden="true">{initials}</span>
+            <span class="nav-brand-name">{settings.name}</span>
+        </a>
 
-            <!-- Navigation bureau -->
-            <div class="hidden md:block">
-                <div class="ml-10 flex items-baseline space-x-8">
-                    {
-                        linkSections.map((section) => (
-                            <a
-                                class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200"
-                                href={anchor(section.key)}
-                            >
-                                {section.navLabel}
-                            </a>
-                        ))
-                    }
-                    {
-                        ctaSection && (
-                            <a
-                                class="px-4 py-2 rounded text-sm font-medium bg-transparent text-primary border border-primary hover:bg-primary hover:text-white transition-all duration-200"
-                                href={anchor(ctaSection.key)}
-                            >
-                                {ctaSection.navLabel}
-                            </a>
-                        )
-                    }
-                    <a
-                        class="text-sm font-bold text-gray-300 hover:text-white transition-colors duration-200 ml-4 border-l pl-4 border-gray-700"
-                        href={otherLangHref}
-                        hreflang={otherLang}
-                        aria-label={otherLang === "fr" ? "Passer en français" : "Switch to English"}
-                    >
-                        {otherLang.toUpperCase()}
-                    </a>
-                </div>
-            </div>
+        <!-- Pilule de droite : navigation (bureau) -->
+        <nav class="nav-cluster nav-links glass" aria-label="Navigation principale">
+            <!-- Pastille de survol : une seule, elle glisse d'un lien à l'autre. -->
+            <span class="nav-pill" aria-hidden="true"></span>
 
-            <!-- Bouton menu mobile -->
-            <button
-                type="button"
-                id="nav-toggle"
-                class="md:hidden inline-flex items-center justify-center w-11 h-11 rounded border border-neutral-800 text-gray-300 hover:text-white hover:border-primary/50 transition-colors"
-                aria-controls="mobile-menu"
-                aria-expanded="false"
-                aria-label={labels.open}
-            >
-                <span class="material-icons" id="nav-toggle-icon">menu</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Menu mobile -->
-    <div
-        id="mobile-menu"
-        class="md:hidden hidden border-t border-neutral-900 bg-background-dark/95 backdrop-blur"
-    >
-        <div class="px-4 py-4 space-y-1">
             {
-                sections.map((section) => (
-                    <a
-                        class="block px-3 py-3 rounded text-base font-medium text-gray-300 hover:text-white hover:bg-surface-dark transition-colors"
-                        href={anchor(section.key)}
-                        data-mobile-link
-                    >
+                linkSections.map((section) => (
+                    <a class="nav-link" href={anchor(section.key)}>
                         {section.navLabel}
                     </a>
                 ))
             }
 
-            <div class="pt-3 mt-3 border-t border-neutral-900 flex items-center gap-3">
-                <a
-                    class="flex-1 text-center px-3 py-3 rounded text-sm font-medium border border-neutral-800 text-gray-300 hover:border-primary/50 hover:text-white transition-colors"
-                    href={projectsHref}
-                    data-mobile-link
-                >
-                    {lang === "fr" ? "Tous les projets" : "All projects"}
+            <span class="nav-divider" aria-hidden="true"></span>
+
+            <a
+                class="nav-link nav-link--quiet"
+                href={otherLangHref}
+                hreflang={otherLang}
+                aria-label={otherLang === "fr" ? "Passer en français" : "Switch to English"}
+            >
+                {otherLang.toUpperCase()}
+            </a>
+
+            {
+                ctaSection && (
+                    <a class="nav-cta" href={anchor(ctaSection.key)}>
+                        {ctaSection.navLabel}
+                    </a>
+                )
+            }
+        </nav>
+
+        <!-- Pilule de droite : bouton menu (mobile) -->
+        <button
+            type="button"
+            id="nav-toggle"
+            class="nav-cluster nav-toggle glass"
+            aria-controls="mobile-menu"
+            aria-expanded="false"
+            aria-label={labels.open}
+        >
+            <span class="material-icons" id="nav-toggle-icon">menu</span>
+        </button>
+    </div>
+
+    <!-- Panneau mobile -->
+    <div class="nav-panel glass" id="mobile-menu" hidden>
+        {
+            sections.map((section) => (
+                <a class="nav-panel-link" href={anchor(section.key)} data-mobile-link>
+                    {section.navLabel}
                 </a>
-                {
-                    settings.resumeEnabled && (
-                        <a
-                            class="flex-1 text-center px-3 py-3 rounded text-sm font-medium border border-neutral-800 text-gray-300 hover:border-primary/50 hover:text-white transition-colors"
-                            href={resumeHref}
-                            data-mobile-link
-                        >
-                            {labels.resume}
-                        </a>
-                    )
-                }
-                <a
-                    class="px-4 py-3 rounded text-sm font-bold border border-neutral-800 text-gray-300 hover:border-primary/50 hover:text-white transition-colors"
-                    href={otherLangHref}
-                    hreflang={otherLang}
-                >
-                    {otherLang.toUpperCase()}
-                </a>
-            </div>
+            ))
+        }
+
+        <span class="nav-panel-divider" aria-hidden="true"></span>
+
+        <div class="nav-panel-row">
+            <a class="nav-panel-chip" href={`/${lang}/projects`} data-mobile-link>
+                {labels.all}
+            </a>
+            {
+                settings.resumeEnabled && (
+                    <a class="nav-panel-chip" href={`/${lang}/resume`} data-mobile-link>
+                        {labels.resume}
+                    </a>
+                )
+            }
+            <a class="nav-panel-chip" href={otherLangHref} hreflang={otherLang}>
+                {otherLang.toUpperCase()}
+            </a>
         </div>
     </div>
-</nav>
+</header>
+
+<style>
+    /* ── Enveloppe flottante ──
+       La barre ne touche pas le bord de l'écran et n'a pas de fond pleine
+       largeur : ce sont les pilules qui portent la matière. */
+    .site-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 50;
+        padding: 1.125rem 1.25rem;
+        pointer-events: none;
+    }
+
+    .site-nav-inner {
+        max-width: 78rem;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    /* Les pilules redeviennent cliquables, l'espace entre elles laisse
+       passer les clics vers la page. */
+    .nav-cluster {
+        pointer-events: auto;
+        display: flex;
+        align-items: center;
+        border-radius: 999px;
+        height: 3rem;
+        padding: 0 0.5rem;
+        gap: 0.25rem;
+        text-decoration: none;
+    }
+
+    /* ── Identité ── */
+    .nav-brand {
+        padding-right: 1rem;
+        gap: 0.6rem;
+        transition: box-shadow 0.25s ease;
+    }
+
+    .nav-mark {
+        display: grid;
+        place-items: center;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 999px;
+        background: linear-gradient(140deg, var(--color-primary), #c96f12);
+        color: #fff;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        flex-shrink: 0;
+    }
+
+    .nav-brand-name {
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #f2eee9;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+    }
+
+    .nav-brand:hover {
+        box-shadow:
+            inset 0 0 0 1px var(--hairline-strong),
+            inset 0 1px 0 0 var(--highlight-top),
+            0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    /* ── Liens ── */
+    .nav-links {
+        display: none;
+        position: relative;
+    }
+
+    @media (min-width: 900px) {
+        .nav-links {
+            display: flex;
+        }
+    }
+
+    /* ── Pastille « liquid glass » ──
+       Un seul élément partagé par tous les liens : il se déplace et se
+       redimensionne au lieu de disparaître puis réapparaître. La position et
+       la taille arrivent du script sous forme de variables. */
+    .nav-pill {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        z-index: 0;
+        width: var(--pill-w, 0px);
+        height: var(--pill-h, 2rem);
+        border-radius: 999px;
+        pointer-events: none;
+        opacity: 0;
+        transform: translate(var(--pill-x, 0px), -50%) scale(0.86);
+        background: linear-gradient(
+            180deg,
+            rgba(244, 140, 37, 0.26),
+            rgba(244, 140, 37, 0.1)
+        );
+        box-shadow:
+            inset 0 0 0 1px rgba(244, 140, 37, 0.38),
+            inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+            inset 0 -6px 12px -6px rgba(244, 140, 37, 0.35),
+            0 6px 20px rgba(244, 140, 37, 0.22);
+        backdrop-filter: blur(6px) saturate(1.6);
+        -webkit-backdrop-filter: blur(6px) saturate(1.6);
+        /* Le décalage entre les deux durées produit l'étirement : la pastille
+           arrive avant d'avoir fini de reprendre sa largeur. */
+        transition:
+            transform 0.42s cubic-bezier(0.22, 1.2, 0.36, 1),
+            width 0.5s cubic-bezier(0.34, 1.1, 0.44, 1),
+            height 0.3s ease,
+            opacity 0.22s ease;
+    }
+
+    .nav-pill.is-visible {
+        opacity: 1;
+        transform: translate(var(--pill-x, 0px), -50%) scale(1);
+    }
+
+    /* Pendant le trajet, la pastille s'aplatit et s'allonge : c'est ce qui
+       donne l'impression d'une goutte qui coule d'un lien à l'autre. */
+    .nav-pill.is-sliding {
+        transform: translate(var(--pill-x, 0px), -50%) scale(1.06, 0.84);
+    }
+
+    .nav-link {
+        position: relative;
+        z-index: 1;
+        padding: 0.5rem 0.875rem;
+        border-radius: 999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+        color: var(--color-muted);
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 0.25s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible {
+        color: #fff;
+    }
+
+    .nav-divider,
+    .nav-cta {
+        position: relative;
+        z-index: 1;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .nav-pill {
+            transition: opacity 0.15s ease;
+        }
+
+        .nav-pill.is-sliding {
+            transform: translate(var(--pill-x, 0px), -50%) scale(1);
+        }
+    }
+
+    .nav-link--quiet {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        padding: 0.5rem 0.6rem;
+    }
+
+    .nav-divider {
+        width: 1px;
+        height: 1.125rem;
+        margin: 0 0.25rem;
+        background: var(--hairline-strong);
+        flex-shrink: 0;
+    }
+
+    /* Appel à l'action : seul élément coloré de la barre. */
+    .nav-cta {
+        margin-left: 0.25rem;
+        padding: 0.5rem 1rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #fff;
+        background: var(--color-primary);
+        text-decoration: none;
+        white-space: nowrap;
+        transition:
+            background 0.2s ease,
+            box-shadow 0.2s ease;
+    }
+
+    .nav-cta:hover {
+        background: #ff9a33;
+        box-shadow: 0 4px 16px rgba(244, 140, 37, 0.35);
+    }
+
+    /* ── Bouton mobile ── */
+    .nav-toggle {
+        width: 3rem;
+        justify-content: center;
+        padding: 0;
+        border: none;
+        color: var(--color-muted);
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .nav-toggle:hover {
+        color: #fff;
+    }
+
+    @media (min-width: 900px) {
+        .nav-toggle {
+            display: none;
+        }
+    }
+
+    /* ── Panneau mobile ── */
+    .nav-panel {
+        pointer-events: auto;
+        max-width: 78rem;
+        margin: 0.75rem auto 0;
+        padding: 0.5rem;
+        border-radius: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+    }
+
+    .nav-panel[hidden] {
+        display: none;
+    }
+
+    @media (min-width: 900px) {
+        .nav-panel {
+            display: none;
+        }
+    }
+
+    .nav-panel-link {
+        padding: 0.75rem 0.875rem;
+        border-radius: 0.75rem;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #e8e4df;
+        text-decoration: none;
+        transition: background 0.15s ease;
+    }
+
+    .nav-panel-link:hover {
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-panel-divider {
+        height: 1px;
+        margin: 0.4rem 0.5rem;
+        background: var(--hairline);
+    }
+
+    .nav-panel-row {
+        display: flex;
+        gap: 0.4rem;
+        padding: 0 0.25rem 0.25rem;
+    }
+
+    .nav-panel-chip {
+        flex: 1;
+        text-align: center;
+        padding: 0.65rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--color-muted);
+        text-decoration: none;
+        box-shadow: inset 0 0 0 1px var(--hairline);
+        transition:
+            color 0.15s ease,
+            box-shadow 0.15s ease;
+    }
+
+    .nav-panel-chip:hover {
+        color: #fff;
+        box-shadow: inset 0 0 0 1px var(--hairline-strong);
+    }
+
+    /* Sur très petit écran, le nom complet cède la place au bouton menu. */
+    @media (max-width: 420px) {
+        .nav-brand-name {
+            display: none;
+        }
+
+        .nav-brand {
+            padding-right: 0.5rem;
+        }
+    }
+</style>
 
 <script is:inline define:vars={{ openLabel: labels.open, closeLabel: labels.close }}>
     (function () {
+        // ── Pastille de survol glissante ──
+        const bar = document.querySelector(".nav-links");
+        const pill = bar && bar.querySelector(".nav-pill");
+        const items = bar ? Array.from(bar.querySelectorAll(".nav-link")) : [];
+
+        if (bar && pill && items.length) {
+            let current = null;
+            let slideTimer;
+
+            const moveTo = (target) => {
+                const barBox = bar.getBoundingClientRect();
+                const box = target.getBoundingClientRect();
+                // Barre masquée (mobile) : rien à positionner.
+                if (!box.width) return;
+
+                pill.style.setProperty("--pill-x", `${box.left - barBox.left}px`);
+                pill.style.setProperty("--pill-w", `${box.width}px`);
+                pill.style.setProperty("--pill-h", `${box.height}px`);
+
+                // L'étirement n'a de sens qu'entre deux liens, pas à l'apparition.
+                if (current && current !== target) {
+                    pill.classList.add("is-sliding");
+                    clearTimeout(slideTimer);
+                    slideTimer = setTimeout(
+                        () => pill.classList.remove("is-sliding"),
+                        220,
+                    );
+                }
+
+                current = target;
+                pill.classList.add("is-visible");
+            };
+
+            const hide = () => {
+                current = null;
+                clearTimeout(slideTimer);
+                pill.classList.remove("is-visible", "is-sliding");
+            };
+
+            // Délégation plutôt qu'un écouteur par lien : la barre contient
+            // aussi le CTA et le séparateur, qui n'ont pas de pastille. Sans
+            // ce « sinon », passer du dernier lien au CTA ne déclenchait rien
+            // et la pastille restait figée là où elle était.
+            bar.addEventListener("pointerover", (event) => {
+                const target = event.target;
+                const link =
+                    target instanceof Element
+                        ? target.closest(".nav-link")
+                        : null;
+                if (link) moveTo(link);
+                else hide();
+            });
+
+            items.forEach((item) => {
+                item.addEventListener("focus", () => moveTo(item));
+            });
+
+            bar.addEventListener("pointerleave", hide);
+
+            // Même raisonnement au clavier : le CTA est bien dans la barre,
+            // mais tabuler jusqu'à lui doit effacer la pastille.
+            bar.addEventListener("focusout", (event) => {
+                const next = event.relatedTarget;
+                const link =
+                    next instanceof Element ? next.closest(".nav-link") : null;
+                if (!link) hide();
+            });
+
+            // Les coordonnées sont figées à l'entrée : un redimensionnement ou
+            // un défilement de la barre les rendrait fausses.
+            window.addEventListener("resize", hide);
+        }
+
         const toggle = document.getElementById("nav-toggle");
         const icon = document.getElementById("nav-toggle-icon");
         const menu = document.getElementById("mobile-menu");
         if (!toggle || !menu || !icon) return;
 
         const setOpen = (open) => {
-            menu.classList.toggle("hidden", !open);
+            menu.hidden = !open;
             toggle.setAttribute("aria-expanded", String(open));
             toggle.setAttribute("aria-label", open ? closeLabel : openLabel);
             icon.textContent = open ? "close" : "menu";
         };
 
-        toggle.addEventListener("click", () => {
-            setOpen(menu.classList.contains("hidden"));
-        });
+        toggle.addEventListener("click", () => setOpen(menu.hidden));
 
-        // Refermer après un clic sur un lien : sur une ancre, la page ne
-        // se recharge pas, le menu resterait ouvert par-dessus le contenu.
+        // Refermer après un clic sur un lien : sur une ancre la page ne se
+        // recharge pas, le panneau resterait ouvert par-dessus le contenu.
         menu.querySelectorAll("[data-mobile-link]").forEach((link) => {
             link.addEventListener("click", () => setOpen(false));
         });
 
         document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape" && !menu.classList.contains("hidden")) {
+            if (event.key === "Escape" && !menu.hidden) {
                 setOpen(false);
                 toggle.focus();
             }
         });
 
-        // Le menu mobile ne doit pas rester ouvert si l'écran s'élargit.
-        window.matchMedia("(min-width: 768px)").addEventListener("change", (e) => {
+        // Le panneau mobile ne doit pas rester ouvert si l'écran s'élargit.
+        window.matchMedia("(min-width: 900px)").addEventListener("change", (e) => {
             if (e.matches) setOpen(false);
         });
     })();

@@ -669,6 +669,48 @@
     color: rgba(255, 255, 255, 0.45);
 }
 
+/* Bloc repliable : regroupe les réglages secondaires sans les cacher. */
+.admin-details {
+    margin-top: 0.5rem;
+    border-radius: 0.45rem;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
+    padding: 0.85rem 1rem;
+}
+
+.admin-details > summary {
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.admin-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-details > summary::before {
+    content: "chevron_right";
+    font-family: "Material Icons";
+    font-size: 1.1rem;
+    transition: transform 0.15s ease;
+}
+
+.admin-details[open] > summary::before {
+    transform: rotate(90deg);
+}
+
+.admin-details > summary:hover {
+    color: #fff;
+}
+
+.admin-details[open] > summary {
+    margin-bottom: 1rem;
+}
+
 /* ── Divers ── */
 .admin-divider {
     border: none;

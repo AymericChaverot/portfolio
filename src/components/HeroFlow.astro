@@ -1,0 +1,215 @@
+---
+/**
+ * Visuel du hero : champ de flux.
+ *
+ * Des centaines de particules suivent un champ de vecteurs invisible et
+ * laissent une traînée qui s'efface. Purement décoratif.
+ */
+---
+
+<div class="flow" aria-hidden="true">
+    <canvas id="hero-flow"></canvas>
+</div>
+
+<style>
+    /* Le champ occupe tout le fond de la section. */
+    .flow {
+        position: absolute;
+        inset: 0;
+    }
+
+    .flow canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        mask-image: radial-gradient(
+            ellipse 62% 62% at 50% 50%,
+            #000 25%,
+            transparent 88%
+        );
+        -webkit-mask-image: radial-gradient(
+            ellipse 62% 62% at 50% 50%,
+            #000 25%,
+            transparent 88%
+        );
+    }
+</style>
+
+<script>
+    (function () {
+        const element = document.getElementById("hero-flow");
+        if (!(element instanceof HTMLCanvasElement)) return;
+
+        const context = element.getContext("2d");
+        if (!context) return;
+
+        const canvas = element;
+        const ctx = context;
+
+        const reducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+        ).matches;
+
+        // Beaucoup de particules lentes, avec des traînées qui s'effacent
+        // doucement : c'est ce qui donne des lignes de courant continues
+        // plutôt qu'une pluie d'étincelles.
+        const COUNT = 700;
+        const SPEED = 0.5;
+        const LIFETIME = 340; // images avant réapparition ailleurs
+        const TRAIL_FADE = 0.02; // alpha retiré à chaque image
+
+        interface Particle {
+            x: number;
+            y: number;
+            age: number;
+            /** Décale la teinte pour éviter un rendu monochrome plat. */
+            tint: number;
+        }
+
+        let width = 0;
+        let height = 0;
+        let particles: Particle[] = [];
+
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = rect.width;
+            height = rect.height;
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        function spawn(): Particle {
+            return {
+                x: Math.random() * width,
+                y: Math.random() * height,
+                age: Math.floor(Math.random() * LIFETIME),
+                tint: Math.random(),
+            };
+        }
+
+        function reset() {
+            particles = Array.from({ length: COUNT }, spawn);
+        }
+
+        /**
+         * Angle du champ en un point. Somme de sinusoïdes de périodes non
+         * multiples : le motif ne se répète pas visiblement, pour un coût
+         * dérisoire comparé à un vrai bruit de Perlin.
+         */
+        function angleAt(x: number, y: number, t: number): number {
+            const nx = x / width;
+            const ny = y / height;
+            return (
+                Math.sin(nx * 3.1 + t * 0.35) * 1.4 +
+                Math.cos(ny * 2.7 - t * 0.28) * 1.3 +
+                Math.sin((nx + ny) * 4.3 + t * 0.19) * 0.8
+            );
+        }
+
+        function draw(time: number) {
+            const t = time * 0.001;
+
+            // Efface progressivement les traînées sans peindre de fond :
+            // `destination-out` retire de l'alpha, le canvas reste
+            // transparent et la grille du hero continue de transparaître.
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.fillStyle = `rgba(0, 0, 0, ${TRAIL_FADE})`;
+            ctx.fillRect(0, 0, width, height);
+            ctx.globalCompositeOperation = "source-over";
+
+            ctx.lineCap = "round";
+
+            for (const p of particles) {
+                const angle = angleAt(p.x, p.y, t);
+                const px = p.x;
+                const py = p.y;
+
+                p.x += Math.cos(angle) * SPEED;
+                p.y += Math.sin(angle) * SPEED;
+                p.age++;
+
+                const outside =
+                    p.x < -10 || p.x > width + 10 || p.y < -10 || p.y > height + 10;
+
+                if (outside || p.age > LIFETIME) {
+                    Object.assign(p, spawn(), { age: 0 });
+                    continue;
+                }
+
+                // Apparition et disparition en fondu, pour qu'aucune trace
+                // ne surgisse ni ne s'arrête net.
+                const fade = Math.min(1, Math.min(p.age, LIFETIME - p.age) / 30);
+
+                // Les particules chaudes sont minoritaires : l'orange reste
+                // un accent, pas la couleur dominante.
+                if (p.tint > 0.78) {
+                    ctx.strokeStyle = `rgba(244, 140, 37, ${(0.32 * fade).toFixed(3)})`;
+                    ctx.lineWidth = 0.9;
+                } else {
+                    ctx.strokeStyle = `rgba(176, 170, 163, ${(0.14 * fade).toFixed(3)})`;
+                    ctx.lineWidth = 0.6;
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+            }
+        }
+
+        let raf = 0;
+        let running = false;
+
+        function frame(time: number) {
+            draw(time);
+            raf = requestAnimationFrame(frame);
+        }
+
+        function start() {
+            if (running || reducedMotion) return;
+            running = true;
+            raf = requestAnimationFrame(frame);
+        }
+
+        function stop() {
+            running = false;
+            cancelAnimationFrame(raf);
+        }
+
+        resize();
+        reset();
+
+        if (reducedMotion) {
+            // Sans animation, on trace quelques centaines d'images d'un coup
+            // pour obtenir une image fixe déjà dessinée.
+            for (let i = 0; i < 220; i++) draw(i * 16);
+        } else {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && !document.hidden) start();
+                        else stop();
+                    }
+                },
+                { threshold: 0 },
+            );
+            observer.observe(canvas);
+
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) stop();
+                else if (canvas.getBoundingClientRect().bottom > 0) start();
+            });
+        }
+
+        let resizeRaf = 0;
+        new ResizeObserver(() => {
+            cancelAnimationFrame(resizeRaf);
+            resizeRaf = requestAnimationFrame(() => {
+                resize();
+                reset();
+            });
+        }).observe(canvas);
+    })();
+</script>

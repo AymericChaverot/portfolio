@@ -33,7 +33,56 @@ function open(): DatabaseSync {
     // il peut donc être rejoué à chaque démarrage.
     db.exec(schema);
 
+    // `CREATE TABLE IF NOT EXISTS` ne touche pas aux tables déjà créées :
+    // les colonnes ajoutées après une mise en production doivent l'être ici.
+    migrate(db);
+
     return db;
+}
+
+/** Ajoute une colonne si elle manque. Sans effet si elle existe déjà. */
+function ensureColumn(
+    db: DatabaseSync,
+    table: string,
+    column: string,
+    definition: string,
+): void {
+    const columns = db.prepare(`PRAGMA table_info(${table})`).all() as {
+        name: string;
+    }[];
+
+    if (columns.some((c) => c.name === column)) return;
+
+    // SQLite impose une valeur par défaut constante sur ALTER TABLE ADD COLUMN,
+    // ce que respectent toutes les définitions ci-dessous.
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
+/**
+ * Migrations additives, rejouées à chaque démarrage.
+ *
+ * On ne versionne pas : chaque étape vérifie elle-même si elle est nécessaire,
+ * ce qui rend l'ordre et le nombre d'exécutions sans importance.
+ */
+function migrate(db: DatabaseSync): void {
+    // Visuel affiché à droite du hero : relief, aucun, ou terminal.
+    ensureColumn(
+        db,
+        "site_settings",
+        "hero_visual",
+        "TEXT NOT NULL DEFAULT 'terrain'",
+    );
+
+    // L'ancien graphe de nœuds a été remplacé par le relief filaire.
+    try {
+        db.exec(
+            `UPDATE site_settings SET hero_visual = 'terrain' WHERE hero_visual = 'graph'`,
+        );
+    } catch {
+        // Une base créée avec l'ancienne contrainte CHECK refuse la nouvelle
+        // valeur. Sans importance : la lecture traite 'graph' comme un alias
+        // de 'terrain' (voir `getSettings`).
+    }
 }
 
 export function getDb(): DatabaseSync {

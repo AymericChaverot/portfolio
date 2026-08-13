@@ -7,6 +7,7 @@ import I18nField from "../../components/admin/I18nField.astro";
 import MediaPicker from "../../components/admin/MediaPicker.astro";
 import Toggle from "../../components/admin/Toggle.astro";
 import { get } from "../../lib/db";
+import { toHeroVisual } from "../../lib/content";
 
 export const prerender = false;
 
@@ -79,8 +80,24 @@ const error = result?.error?.message;
         <section class="admin-card">
             <h2 class="admin-card-title">Section d'accueil</h2>
             <p class="admin-card-hint">
-                Boutons d'appel à l'action et fenêtre de terminal du hero.
+                Le visuel affiché à droite du titre, et les boutons d'appel à
+                l'action.
             </p>
+
+            <Field
+                name="hero_visual"
+                label="Visuel du hero"
+                value={toHeroVisual(row.hero_visual)}
+                type="select"
+                options={[
+                    { value: "terrain", label: "Relief filaire — nappe 3D ondulante" },
+                    { value: "flow", label: "Champ de flux — lignes de courant" },
+                    { value: "globe", label: "Sphère filaire — globe en rotation" },
+                    { value: "none", label: "Aucun — composition centrée" },
+                    { value: "terminal", label: "Terminal — bloc de code" },
+                ]}
+                hint="« Aucun » recentre tout le hero sur la typographie. Les trois visuels animés sont décoratifs, s'immobilisent si le visiteur a réduit les animations, et se mettent en pause hors écran."
+            />
 
             <div class="admin-grid-2">
                 <I18nField
@@ -95,61 +112,47 @@ const error = result?.error?.message;
                 />
             </div>
 
-            <Field
-                name="hero_terminal_title"
-                label="Titre de la fenêtre de terminal"
-                value={row.hero_terminal_title}
-                placeholder="profile.rs — neovim"
-            />
+            <details class="admin-details">
+                <summary>Réglages du terminal</summary>
+                <p class="admin-hint" style="margin-bottom: 1rem">
+                    Utilisés uniquement si le visuel « Terminal » est sélectionné.
+                </p>
 
-            <I18nField
-                name="hero_terminal_code"
-                label="Code affiché dans le terminal"
-                value={row.hero_terminal_code}
-                type="code"
-                hint="Code brut, sans HTML. La coloration syntaxique (style Rust) et la numérotation des lignes sont appliquées automatiquement. Laisse vide pour masquer le terminal."
-            />
+                <Field
+                    name="hero_terminal_title"
+                    label="Titre de la fenêtre"
+                    value={row.hero_terminal_title}
+                    placeholder="profile.rs — neovim"
+                />
+
+                <I18nField
+                    name="hero_terminal_code"
+                    label="Code affiché"
+                    value={row.hero_terminal_code}
+                    type="code"
+                    hint="Code brut, sans HTML. La coloration syntaxique (style Rust) et la numérotation des lignes sont appliquées automatiquement."
+                />
+            </details>
         </section>
 
         <!-- Contact -->
         <section class="admin-card">
             <h2 class="admin-card-title">Section contact</h2>
             <p class="admin-card-hint">
-                Le terminal de la section contact. Les liens eux-mêmes se gèrent
-                dans <a href="/admin/socials" class="text-primary hover:underline"
-                    >Liens & contact</a
+                Le titre et l'accroche se règlent dans <a
+                    href="/admin/sections"
+                    class="text-primary hover:underline">Sections</a
+                >, et les liens dans <a
+                    href="/admin/socials"
+                    class="text-primary hover:underline">Liens &amp; contact</a
                 >.
             </p>
 
-            <div class="admin-grid-2">
-                <Field
-                    name="contact_user"
-                    label="Utilisateur affiché"
-                    value={row.contact_user}
-                    placeholder="guest@aymeric"
-                />
-                <Field
-                    name="contact_command"
-                    label="Commande affichée"
-                    value={row.contact_command}
-                    placeholder="./contact_me.sh"
-                />
-            </div>
-
-            <I18nField
-                name="contact_lines"
-                label="Lignes de sortie du terminal"
-                value={row.contact_lines}
-                type="list"
-                separator="newline"
-                rows={4}
-                hint="Une ligne par entrée. La dernière est mise en évidence en orange."
-            />
-
             <I18nField
                 name="contact_send_email"
-                label="Libellé du bouton e-mail"
+                label="Libellé au-dessus de l'adresse e-mail"
                 value={row.contact_send_email}
+                placeholder="Écrivez-moi"
             />
         </section>
 

@@ -63,7 +63,7 @@ check("hero : nom affiché", fr.includes("Aymeric Chaverot"));
 check("expertise : titre de section", fr.includes("Expertise Principale"));
 check("parcours : groupe professionnel", fr.includes("Parcours Professionnel"));
 check("projets : titre de section", fr.includes("Projets R"));
-check("terminal : coloration syntaxique appliquée", fr.includes("text-yellow-200"));
+check("hero : relief par défaut", fr.includes('id="hero-terrain"'));
 check("pas de HTML i18n brut qui fuit", !fr.includes('{"fr":'));
 
 const en = await text("/en");
@@ -340,7 +340,107 @@ check("enregistrement des réglages", settings.status < 400, String(settings.sta
 
 const afterSettings = await text("/fr");
 check("nouveau statut visible", afterSettings.includes("Test statut"));
-check("nouvelles lignes de contact visibles", afterSettings.includes("Ligne une"));
+
+// ─────────────────────────────────────────────────────────────────────────
+section("Section contact");
+
+const contactHtml = await text("/fr");
+check("plus de faux terminal", !contactHtml.includes("contact-terminal"));
+check("carte e-mail présente", contactHtml.includes("contact-mail"));
+check(
+    "adresse e-mail lisible, sans le préfixe mailto:",
+    contactHtml.includes("achaverot.dev@pm.me"),
+);
+check("liens en cartes", contactHtml.includes("contact-card"));
+check(
+    "identifiant affiché sous le nom du réseau",
+    contactHtml.includes("/AymericChaverot"),
+);
+check(
+    "statut rouge quand indisponible",
+    contactHtml.includes("contact-meta-dot--off"),
+);
+
+// ─────────────────────────────────────────────────────────────────────────
+section("Choix du visuel du hero");
+
+/** Rejoue l'enregistrement des réglages en ne changeant que le visuel. */
+const saveHeroVisual = (visual) =>
+    post("settings", {
+        name: "Aymeric Chaverot",
+        role_fr: "Développeur et Ingénieur Système",
+        role_en: "Developer and Systems Engineer",
+        description_fr: "Description FR",
+        description_en: "Description EN",
+        location: "Lyon, France",
+        status_text_fr: "Test statut",
+        status_text_en: "Test status",
+        hero_visual: visual,
+        hero_terminal_title: "profile.rs",
+        hero_terminal_code_fr: "struct Ingenieur {\n    nom: String,\n}",
+        hero_terminal_code_en: "struct Engineer {\n    name: String,\n}",
+        contact_user: "guest",
+        contact_command: "./contact.sh",
+        contact_lines_fr: "Ligne une\nLigne deux",
+        contact_lines_en: "Line one\nLine two",
+        theme_color: "#f48c25",
+        default_lang: "fr",
+        resume_enabled: "true",
+    });
+
+const CANVAS_IDS = ["hero-terrain", "hero-flow", "hero-globe"];
+const hasAnyCanvas = (html) => CANVAS_IDS.some((id) => html.includes(`id="${id}"`));
+
+await saveHeroVisual("none");
+const heroNone = await text("/fr");
+check("visuel « aucun » : pas de canvas", !hasAnyCanvas(heroNone));
+check("visuel « aucun » : hero centré", heroNone.includes("hero--centered"));
+
+await saveHeroVisual("terminal");
+const heroTerminal = await text("/fr");
+check("visuel « terminal » : bloc de code", heroTerminal.includes("terminal-code"));
+check(
+    "visuel « terminal » : coloration syntaxique",
+    heroTerminal.includes("text-yellow-200"),
+);
+check("visuel « terminal » : pas de canvas", !hasAnyCanvas(heroTerminal));
+check(
+    "visuel « terminal » : mise en page deux colonnes",
+    !heroTerminal.includes("hero--centered"),
+);
+
+await saveHeroVisual("flow");
+const heroFlow = await text("/fr");
+check("visuel « flux » : canvas présent", heroFlow.includes('id="hero-flow"'));
+
+await saveHeroVisual("globe");
+const heroGlobe = await text("/fr");
+check("visuel « globe » : canvas présent", heroGlobe.includes('id="hero-globe"'));
+
+await saveHeroVisual("terrain");
+const heroTerrain = await text("/fr");
+check("visuel « relief » : canvas présent", heroTerrain.includes('id="hero-terrain"'));
+check(
+    "visuel animé : occupe le fond, texte centré",
+    heroTerrain.includes("hero-canvas") && heroTerrain.includes("hero--centered"),
+);
+
+// `graph` est l'ancien nom du relief : une base existante ne doit pas casser.
+await saveHeroVisual("graph");
+const heroLegacy = await text("/fr");
+check(
+    "ancien nom « graph » : bascule sur le relief",
+    heroLegacy.includes('id="hero-terrain"'),
+);
+
+await saveHeroVisual("terrain");
+const heroGraph = await text("/fr");
+
+// ─────────────────────────────────────────────────────────────────────────
+section("Barre de navigation & pied de page");
+
+check("navbar en pilules flottantes", heroGraph.includes("nav-cluster"));
+check("pas de lien admin en pied de page", !heroGraph.includes('href="/admin"'));
 
 // ─────────────────────────────────────────────────────────────────────────
 section("Upload de fichiers");
@@ -420,7 +520,7 @@ check("alerte de succès affichée", afterForm.includes("admin-alert--success"))
 check("élément marqué comme masqué", afterForm.includes("admin-item--hidden"));
 
 const publicAfterForm = await text("/fr");
-const cardCount = (publicAfterForm.match(/group h-full flex flex-col p-8/g) || []).length;
+const cardCount = (publicAfterForm.match(/class="skill-card/g) || []).length;
 check("carte masquée retirée du site public", cardCount === 2, `cartes: ${cardCount}`);
 
 await fetch(BASE + "/admin/expertise?_action=list.toggleVisibility", {
@@ -429,7 +529,7 @@ await fetch(BASE + "/admin/expertise?_action=list.toggleVisibility", {
     body: new URLSearchParams({ table: "expertise_cards", id: "1", visible: "true" }),
     redirect: "manual",
 });
-const restored = (await text("/fr")).match(/group h-full flex flex-col p-8/g) || [];
+const restored = (await text("/fr")).match(/class="skill-card/g) || [];
 check("carte réaffichée", restored.length === 3, `cartes: ${restored.length}`);
 
 // La barrière CSRF doit aussi couvrir ce chemin

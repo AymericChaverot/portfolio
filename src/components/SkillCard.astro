@@ -9,19 +9,139 @@ interface Props {
 const { icon, title, description, skills } = Astro.props;
 ---
 
-<div class="group h-full flex flex-col p-8 rounded bg-surface-dark border border-neutral-800 hover:border-primary transition-all duration-300 relative overflow-hidden hover:shadow-[0_0_30px_1px_rgba(244,140,37,0.3)]">
-    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/30 transition-all duration-500"></div>
-    <div class="w-12 h-12 bg-black rounded flex items-center justify-center border border-neutral-800 mb-6 text-primary shadow-sm shadow-primary/10">
+<div class="skill-card panel panel-hover" data-spotlight="true">
+    <div class="skill-halo" aria-hidden="true"></div>
+
+    <div class="skill-icon">
         <span class="material-icons">{icon}</span>
     </div>
-    <h4 class="text-xl font-bold text-white mb-3">{title}</h4>
-    <p class="text-gray-500 mb-6 text-sm leading-relaxed flex-1">{description}</p>
-    <ul class="space-y-3">
-        {skills.map((skill) => (
-            <li class="flex items-center text-sm text-gray-300 font-mono">
-                <span class="w-1.5 h-1.5 bg-primary rounded-full mr-3" />
-                {skill}
-            </li>
-        ))}
-    </ul>
+
+    <h4 class="skill-title">{title}</h4>
+    <p class="skill-description">{description}</p>
+
+    {
+        skills.length > 0 && (
+            <ul class="skill-list">
+                {skills.map((skill) => (
+                    <li class="skill-item">
+                        <span class="skill-bullet" aria-hidden="true" />
+                        {skill}
+                    </li>
+                ))}
+            </ul>
+        )
+    }
 </div>
+
+<style>
+    .skill-card {
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 1.75rem;
+    }
+
+    /* Halo du coin supérieur droit. Au repos il reste une petite lueur ; au
+       survol il s'étale sur toute la carte et se dilue — d'où l'échelle et le
+       flou animés plutôt qu'une simple variation d'opacité. */
+    .skill-halo {
+        position: absolute;
+        top: -5rem;
+        right: -5rem;
+        width: 15rem;
+        height: 15rem;
+        border-radius: 999px;
+        background: radial-gradient(
+            circle,
+            rgba(244, 140, 37, 0.22) 0%,
+            rgba(244, 140, 37, 0.12) 38%,
+            transparent 72%
+        );
+        opacity: 0.35;
+        filter: blur(12px);
+        transform: scale(0.7);
+        transform-origin: 65% 35%;
+        transition:
+            opacity 0.5s ease,
+            filter 0.6s ease,
+            transform 0.6s cubic-bezier(0.22, 0.61, 0.36, 1);
+        pointer-events: none;
+    }
+
+    .skill-card:hover .skill-halo {
+        opacity: 1;
+        filter: blur(42px);
+        transform: scale(2.1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .skill-halo {
+            transition: opacity 0.3s ease;
+        }
+    }
+
+    .skill-icon {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 0.7rem;
+        background: rgba(244, 140, 37, 0.1);
+        box-shadow: inset 0 0 0 1px rgba(244, 140, 37, 0.2);
+        color: var(--color-primary);
+        margin-bottom: 1.5rem;
+    }
+
+    .skill-icon .material-icons {
+        font-size: 1.35rem;
+    }
+
+    .skill-title {
+        position: relative;
+        font-size: 1.125rem;
+        font-weight: 650;
+        letter-spacing: -0.015em;
+        color: #f5f2ef;
+        margin: 0 0 0.65rem;
+    }
+
+    .skill-description {
+        position: relative;
+        font-size: 0.875rem;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.42);
+        margin: 0 0 1.5rem;
+        flex: 1;
+    }
+
+    .skill-list {
+        position: relative;
+        list-style: none;
+        margin: 0;
+        padding: 1.25rem 0 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+        box-shadow: inset 0 1px 0 0 var(--hairline);
+    }
+
+    .skill-item {
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: rgba(255, 255, 255, 0.68);
+    }
+
+    .skill-bullet {
+        width: 4px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--color-primary);
+        flex-shrink: 0;
+    }
+</style>

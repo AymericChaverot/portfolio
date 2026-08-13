@@ -1,0 +1,226 @@
+---
+/**
+ * Visuel du hero : sphère filaire en rotation.
+ *
+ * Méridiens, parallèles et quelques points lumineux. Purement décoratif :
+ * les points ne représentent aucune localisation réelle.
+ */
+---
+
+<div class="globe" aria-hidden="true">
+    <canvas id="hero-globe"></canvas>
+</div>
+
+<style>
+    /* Le globe occupe tout le fond de la section ; son rayon reste calculé
+       sur la plus petite dimension pour rester circulaire. */
+    .globe {
+        position: absolute;
+        inset: 0;
+    }
+
+    .globe canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+</style>
+
+<script>
+    (function () {
+        const element = document.getElementById("hero-globe");
+        if (!(element instanceof HTMLCanvasElement)) return;
+
+        const context = element.getContext("2d");
+        if (!context) return;
+
+        const canvas = element;
+        const ctx = context;
+
+        const reducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+        ).matches;
+
+        const MERIDIANS = 18; // lignes verticales
+        const PARALLELS = 12; // lignes horizontales
+        const RESOLUTION = 64; // points par ligne
+        const TILT = -0.38; // inclinaison de l'axe (radians)
+
+        /** Points lumineux, en coordonnées sphériques fixes sur le globe. */
+        const MARKERS = [
+            { lat: 0.79, lon: 0.08 }, // ~Lyon
+            { lat: 0.71, lon: -1.29 },
+            { lat: 0.66, lon: 2.44 },
+            { lat: -0.41, lon: -0.82 },
+            { lat: 0.1, lon: 1.81 },
+            { lat: -0.59, lon: 2.62 },
+            { lat: 0.93, lon: 0.55 },
+        ];
+
+        let width = 0;
+        let height = 0;
+        let radius = 0;
+
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = rect.width;
+            height = rect.height;
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            radius = Math.min(width, height) * 0.36;
+        }
+
+        interface Projected {
+            x: number;
+            y: number;
+            /** Profondeur -1 (arrière) à 1 (avant). */
+            depth: number;
+        }
+
+        /** Sphérique → écran, avec rotation autour de l'axe incliné. */
+        function project(lat: number, lon: number, spin: number): Projected {
+            const a = lon + spin;
+
+            // Point sur la sphère unité
+            let x = Math.cos(lat) * Math.sin(a);
+            let y = Math.sin(lat);
+            let z = Math.cos(lat) * Math.cos(a);
+
+            // Inclinaison autour de l'axe X
+            const cosT = Math.cos(TILT);
+            const sinT = Math.sin(TILT);
+            const y2 = y * cosT - z * sinT;
+            const z2 = y * sinT + z * cosT;
+
+            return {
+                x: width / 2 + x * radius,
+                y: height / 2 - y2 * radius,
+                depth: z2,
+            };
+        }
+
+        /** Trace une ligne en découpant à chaque changement de profondeur. */
+        function strokeLine(points: Projected[]) {
+            for (let i = 0; i < points.length - 1; i++) {
+                const a = points[i]!;
+                const b = points[i + 1]!;
+                const depth = (a.depth + b.depth) / 2;
+
+                // L'arrière du globe reste visible mais très atténué : c'est
+                // ce qui donne la lecture « fil de fer » plutôt que « disque ».
+                const alpha =
+                    depth > 0 ? 0.1 + depth * 0.28 : 0.03 + (depth + 1) * 0.05;
+
+                ctx.strokeStyle = `rgba(168, 162, 155, ${alpha.toFixed(3)})`;
+                ctx.lineWidth = depth > 0 ? 0.55 + depth * 0.5 : 0.5;
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.stroke();
+            }
+        }
+
+        function draw(time: number) {
+            const spin = time * 0.00016;
+            ctx.clearRect(0, 0, width, height);
+            ctx.lineCap = "round";
+
+            // Méridiens
+            for (let m = 0; m < MERIDIANS; m++) {
+                const lon = (m / MERIDIANS) * Math.PI * 2;
+                const points: Projected[] = [];
+                for (let i = 0; i <= RESOLUTION; i++) {
+                    const lat = -Math.PI / 2 + (i / RESOLUTION) * Math.PI;
+                    points.push(project(lat, lon, spin));
+                }
+                strokeLine(points);
+            }
+
+            // Parallèles
+            for (let p = 1; p < PARALLELS; p++) {
+                const lat = -Math.PI / 2 + (p / PARALLELS) * Math.PI;
+                const points: Projected[] = [];
+                for (let i = 0; i <= RESOLUTION; i++) {
+                    const lon = (i / RESOLUTION) * Math.PI * 2;
+                    points.push(project(lat, lon, spin));
+                }
+                strokeLine(points);
+            }
+
+            // Points lumineux : seuls ceux de la face avant sont dessinés.
+            ctx.globalCompositeOperation = "lighter";
+            for (const marker of MARKERS) {
+                const p = project(marker.lat, marker.lon, spin);
+                if (p.depth <= 0.05) continue;
+
+                const intensity = Math.min(1, p.depth * 1.4);
+
+                const glow = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 16);
+                glow.addColorStop(0, `rgba(244, 140, 37, ${0.32 * intensity})`);
+                glow.addColorStop(1, "rgba(244, 140, 37, 0)");
+                ctx.fillStyle = glow;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 16, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = `rgba(255, 176, 92, ${0.85 * intensity})`;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 2.1, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.globalCompositeOperation = "source-over";
+        }
+
+        let raf = 0;
+        let running = false;
+
+        function frame(time: number) {
+            draw(time);
+            raf = requestAnimationFrame(frame);
+        }
+
+        function start() {
+            if (running || reducedMotion) return;
+            running = true;
+            raf = requestAnimationFrame(frame);
+        }
+
+        function stop() {
+            running = false;
+            cancelAnimationFrame(raf);
+        }
+
+        resize();
+
+        if (reducedMotion) {
+            draw(0);
+        } else {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && !document.hidden) start();
+                        else stop();
+                    }
+                },
+                { threshold: 0 },
+            );
+            observer.observe(canvas);
+
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) stop();
+                else if (canvas.getBoundingClientRect().bottom > 0) start();
+            });
+        }
+
+        let resizeRaf = 0;
+        new ResizeObserver(() => {
+            cancelAnimationFrame(resizeRaf);
+            resizeRaf = requestAnimationFrame(() => {
+                resize();
+                if (!running) draw(performance.now());
+            });
+        }).observe(canvas);
+    })();
+</script>

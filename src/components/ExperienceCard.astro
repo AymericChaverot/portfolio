@@ -99,15 +99,15 @@ const { item, side = "left" } = Astro.props;
         height: 2.75rem;
         border-radius: 50%;
         background: #0a0a0a;
-        border: 1.5px solid rgba(244, 140, 37, 0.4);
+        box-shadow:
+            0 0 0 1px rgba(244, 140, 37, 0.35),
+            0 0 0 5px #050505,
+            0 0 14px rgba(244, 140, 37, 0.15);
         display: flex;
         align-items: center;
         justify-content: center;
         position: relative;
         z-index: 2;
-        box-shadow:
-            0 0 0 4px #050505,
-            0 0 14px rgba(244, 140, 37, 0.15);
         transition:
             border-color 0.3s ease,
             box-shadow 0.3s ease;
@@ -119,9 +119,9 @@ const { item, side = "left" } = Astro.props;
     }
 
     .exp-card:hover .timeline-dot {
-        border-color: rgba(244, 140, 37, 0.9);
         box-shadow:
-            0 0 0 4px #050505,
+            0 0 0 1px rgba(244, 140, 37, 0.85),
+            0 0 0 5px #050505,
             0 0 20px rgba(244, 140, 37, 0.4);
     }
 
@@ -196,8 +196,10 @@ const { item, side = "left" } = Astro.props;
         flex: 1;
         min-width: 0;
         background: rgba(10, 10, 10, 0.9);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 0.75rem;
+        box-shadow:
+            inset 0 0 0 1px var(--hairline),
+            inset 0 1px 0 0 var(--highlight-top);
+        border-radius: var(--radius-card);
         padding: 1.5rem;
         position: relative;
         overflow: hidden;
@@ -223,10 +225,10 @@ const { item, side = "left" } = Astro.props;
     }
 
     .exp-card:hover .exp-card-inner {
-        border-color: rgba(244, 140, 37, 0.25);
         box-shadow:
-            0 8px 32px rgba(0, 0, 0, 0.4),
-            0 0 0 1px rgba(244, 140, 37, 0.08);
+            inset 0 0 0 1px rgba(244, 140, 37, 0.28),
+            inset 0 1px 0 0 var(--highlight-top),
+            0 10px 32px rgba(0, 0, 0, 0.45);
         transform: translateX(4px);
     }
 
@@ -291,7 +293,7 @@ const { item, side = "left" } = Astro.props;
         align-items: center;
         gap: 0.35rem;
         background: rgba(10, 10, 10, 0.9);
-        border: 1px solid rgba(37, 253, 0, 0.5);
+        box-shadow: inset 0 0 0 1px rgba(74, 222, 128, 0.4);
         color: #4ade80;
         font-size: 0.65rem;
         font-weight: 600;
@@ -384,9 +386,9 @@ const { item, side = "left" } = Astro.props;
         font-family: var(--font-mono, monospace);
         color: rgba(244, 140, 37, 0.8);
         background: rgba(244, 140, 37, 0.07);
-        border: 1px solid rgba(244, 140, 37, 0.18);
-        padding: 0.2rem 0.55rem;
-        border-radius: 4px;
+        box-shadow: inset 0 0 0 1px rgba(244, 140, 37, 0.18);
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
         letter-spacing: 0.04em;
         transition:
             background 0.2s ease,

@@ -88,12 +88,33 @@ retirant du site — y compris des sections entières.
 Les modifications sont **visibles immédiatement** : le cache mémoire est
 invalidé à chaque enregistrement.
 
-### Terminal du hero
+### Visuel du hero
 
-Le bloc de code du hero se saisit en **texte brut** dans les réglages. La
-coloration syntaxique (style Rust) et la numérotation des lignes sont
-appliquées au rendu — aucun HTML n'est stocké en base, donc aucune injection
-possible.
+Cinq options, dans **Réglages → Section d'accueil** :
+
+| Option       | Rendu                                                                                                      |
+| ------------ | ------------------------------------------------------------------------------------------------------------ |
+| **Relief**   | Nappe 3D en fil de fer qui ondule, projetée en perspective, crêtes orange. Défaut.                            |
+| **Flux**     | Des centaines de particules suivant un champ de vecteurs, en lignes de courant.                                |
+| **Globe**    | Sphère filaire en rotation avec quelques points lumineux.                                                      |
+| **Aucun**    | Pas de visuel : le hero repose sur la typographie seule.                                                       |
+| **Terminal** | Le bloc de code d'origine, en colonne à droite.                                                                |
+
+Les trois visuels animés **occupent tout le fond de la section**, le texte se
+centrant par-dessus derrière un voile de lisibilité. Ils sont purement
+décoratifs — aucune donnée réelle n'y est représentée — s'immobilisent sous
+`prefers-reduced-motion`, et se mettent en pause hors écran ou quand l'onglet
+passe en arrière-plan.
+
+Le code du terminal se saisit en **texte brut** ; la coloration syntaxique
+(style Rust) et la numérotation des lignes sont appliquées au rendu — aucun
+HTML n'est stocké en base, donc aucune injection possible.
+
+### Section contact
+
+Titre, sur-titre et accroche se règlent dans **Sections → contact**. Les liens
+viennent de **Liens & contact** : le premier `mailto:` devient la grande carte
+e-mail, les autres des cartes secondaires affichant leur identifiant.
 
 ### Page CV
 

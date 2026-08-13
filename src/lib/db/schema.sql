@@ -36,6 +36,11 @@ CREATE TABLE IF NOT EXISTS site_settings (
     -- Hero
     hero_cta_primary       TEXT NOT NULL DEFAULT '{}', -- i18n
     hero_cta_secondary     TEXT NOT NULL DEFAULT '{}', -- i18n
+    -- Visuel à droite du titre : terrain | none | terminal
+    -- Pas de contrainte CHECK : SQLite ne sait pas la modifier sans
+    -- reconstruire la table, ce qui rendrait tout ajout de variante coûteux.
+    -- La validation se fait dans les actions (zod) et à la lecture.
+    hero_visual            TEXT NOT NULL DEFAULT 'terrain',
     hero_terminal_title    TEXT NOT NULL DEFAULT 'profile.rs — neovim',
     hero_terminal_code     TEXT NOT NULL DEFAULT '{}', -- i18n, code brut
 

@@ -10,32 +10,26 @@ interface Props {
 const { project, lang } = Astro.props;
 
 const ACTION_LABELS: Record<string, Record<Lang, string>> = {
-    source: { fr: "Voir le code", en: "View Source" },
-    info: { fr: "Plus d'infos", en: "More Info" },
+    source: { fr: "Voir le code", en: "View source" },
+    info: { fr: "Plus d'infos", en: "More info" },
     visit: { fr: "Visiter", en: "Visit" },
 };
 
 const ACTION_ICONS: Record<string, string> = {
     source: "code",
     info: "info",
-    visit: "launch",
+    visit: "north_east",
 };
 
-// La carte mène toujours vers la fiche détaillée du projet : le lien
-// externe éventuel est proposé depuis cette fiche.
+// La carte mène toujours vers la fiche détaillée : le lien externe éventuel
+// est proposé depuis cette fiche.
 const href = `/${lang}/projects/${project.slug}`;
 const actionLabel = ACTION_LABELS[project.actionType]?.[lang] ?? "";
 const actionIcon = ACTION_ICONS[project.actionType] ?? "arrow_forward";
 ---
 
-<a
-    href={href}
-    data-spotlight="true"
-    class="bg-surface-dark rounded-lg overflow-hidden border border-neutral-800 hover:border-primary/50 transition-all group flex flex-col h-full no-underline"
->
-    <div
-        class="h-48 bg-black relative overflow-hidden group-hover:opacity-90 transition-opacity"
-    >
+<a href={href} class="project" data-spotlight="true">
+    <div class="project-media">
         {
             project.image ? (
                 <img
@@ -45,61 +39,221 @@ const actionIcon = ACTION_ICONS[project.actionType] ?? "arrow_forward";
                     height={project.image.height ?? undefined}
                     loading="lazy"
                     decoding="async"
-                    class="w-full h-full object-cover opacity-40 grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-500"
+                    class="project-image"
                 />
             ) : (
-                <div class="w-full h-full flex items-center justify-center text-neutral-800">
-                    <span class="material-icons" style="font-size: 3rem">
-                        terminal
-                    </span>
+                <div class="project-placeholder">
+                    <span class="material-icons">terminal</span>
                 </div>
             )
         }
-        <div
-            class="absolute inset-0 bg-gradient-to-t from-surface-dark to-transparent"
-        >
-        </div>
-        {
-            project.badge && (
-                <div class="absolute top-4 right-4 bg-black/80 backdrop-blur text-xs font-mono px-2 py-1 rounded border border-neutral-700 text-primary">
-                    {project.badge}
-                </div>
-            )
-        }
+        <div class="project-fade" aria-hidden="true"></div>
+        {project.badge && <span class="project-badge">{project.badge}</span>}
     </div>
 
-    <div class="p-6 flex-1 flex flex-col">
-        <h3 class="text-xl font-bold text-white mb-2">{project.title}</h3>
-        <p class="text-gray-400 text-sm mb-6 flex-1">{project.description}</p>
+    <div class="project-body">
+        <h3 class="project-title">{project.title}</h3>
+        <p class="project-description">{project.description}</p>
 
         {
             project.tags.length > 0 && (
-                <div class="flex flex-wrap gap-2 mb-6">
+                <div class="project-tags">
                     {project.tags.map((tag) => (
-                        <span class="px-2 py-1 bg-neutral-900 rounded text-xs text-gray-300 font-mono border border-neutral-800">
-                            {tag}
-                        </span>
+                        <span class="project-tag">{tag}</span>
                     ))}
                 </div>
             )
         }
 
-        <div
-            class="flex items-center justify-between pt-4 border-t border-neutral-800"
-        >
-            <div
-                class="text-primary group-hover:text-white font-medium text-sm flex items-center transition-colors"
-            >
-                <span class="material-icons text-sm mr-2">{actionIcon}</span>
+        <div class="project-footer">
+            <span class="project-action">
                 {actionLabel}
-            </div>
-            {
-                project.statusText && (
-                    <span class="text-gray-600 text-xs font-mono">
-                        {project.statusText}
-                    </span>
-                )
-            }
+                <span class="material-icons project-action-icon">{actionIcon}</span>
+            </span>
+            {project.statusText && (
+                <span class="project-status">{project.statusText}</span>
+            )}
         </div>
     </div>
 </a>
+
+<style>
+    /* Cette carte n'utilise pas la classe `.panel` : son liseré doit être
+       peint au-dessus du visuel, qui est opaque et pleine largeur. Un liseré
+       de fond (comme celui de `.panel`) resterait visible sous le texte mais
+       serait recouvert sur l'image, donnant deux épaisseurs différentes sur
+       le même contour. Ici, `::after` en est l'unique source. */
+    .project {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        text-decoration: none;
+        background: #0a0a0a;
+        border-radius: var(--radius-card);
+        transition:
+            transform 0.3s ease,
+            box-shadow 0.3s ease;
+    }
+
+    .project::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        box-shadow:
+            inset 0 0 0 1px var(--hairline),
+            inset 0 1px 0 0 var(--highlight-top);
+        pointer-events: none;
+        z-index: 2;
+        transition: box-shadow 0.3s ease;
+    }
+
+    .project:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45);
+    }
+
+    .project:hover::after {
+        box-shadow:
+            inset 0 0 0 1px rgba(244, 140, 37, 0.28),
+            inset 0 1px 0 0 var(--highlight-top);
+    }
+
+    /* ── Visuel ── */
+    .project-media {
+        position: relative;
+        height: 11rem;
+        background: #000;
+        overflow: hidden;
+        /* L'arrondi doit être porté par l'élément qui découpe.
+           `overflow: hidden` sur la carte ne suffit pas : l'image est
+           promue sur sa propre couche par la transition de transform, et
+           ressort alors en angles vifs par-dessus les coins arrondis. */
+        border-radius: var(--radius-card) var(--radius-card) 0 0;
+        isolation: isolate;
+    }
+
+    .project-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.45;
+        filter: grayscale(1);
+        transition:
+            opacity 0.5s ease,
+            filter 0.5s ease,
+            transform 0.6s ease;
+    }
+
+    .project:hover .project-image {
+        opacity: 0.85;
+        filter: grayscale(0);
+        transform: scale(1.06);
+    }
+
+    .project-placeholder {
+        display: grid;
+        place-items: center;
+        height: 100%;
+        color: rgba(255, 255, 255, 0.08);
+    }
+
+    .project-placeholder .material-icons {
+        font-size: 2.75rem;
+    }
+
+    .project-fade {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to top, #0a0a0a 2%, transparent 65%);
+    }
+
+    .project-badge {
+        position: absolute;
+        top: 0.85rem;
+        right: 0.85rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 999px;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: var(--color-primary);
+        background: rgba(5, 5, 5, 0.7);
+        backdrop-filter: blur(8px);
+        box-shadow: inset 0 0 0 1px rgba(244, 140, 37, 0.25);
+    }
+
+    /* ── Contenu ── */
+    .project-body {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        padding: 1.4rem;
+    }
+
+    .project-title {
+        font-size: 1.125rem;
+        font-weight: 650;
+        letter-spacing: -0.015em;
+        color: #f5f2ef;
+        margin: 0 0 0.5rem;
+    }
+
+    .project-description {
+        font-size: 0.875rem;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.42);
+        margin: 0 0 1.25rem;
+        flex: 1;
+    }
+
+    .project-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .project-tag {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.55);
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        box-shadow: inset 0 0 0 1px var(--hairline);
+    }
+
+    .project-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding-top: 1rem;
+        box-shadow: inset 0 1px 0 0 var(--hairline);
+    }
+
+    .project-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--color-primary);
+        transition: gap 0.2s ease;
+    }
+
+    .project:hover .project-action {
+        gap: 0.6rem;
+    }
+
+    .project-action-icon {
+        font-size: 0.95rem !important;
+    }
+
+    .project-status {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        color: rgba(255, 255, 255, 0.28);
+    }
+</style>

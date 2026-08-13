@@ -33,17 +33,17 @@ const delayClass = (index: number) =>
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 reveal gap-4">
                     <div>
                         {section?.eyebrow && (
-                            <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
+                            <h2 class="section-eyebrow">
                                 {section.eyebrow}
                             </h2>
                         )}
                         {section?.heading && (
-                            <h3 class="text-3xl font-bold text-white mb-4">
+                            <h3 class="section-heading">
                                 {section.heading}
                             </h3>
                         )}
                         {section?.subheading && (
-                            <p class="text-gray-400 max-w-xl">{section.subheading}</p>
+                            <p class="section-subheading max-w-xl">{section.subheading}</p>
                         )}
                     </div>
 

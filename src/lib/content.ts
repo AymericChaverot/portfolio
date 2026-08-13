@@ -14,6 +14,28 @@ export interface MediaRef {
     alt: string;
 }
 
+/** Visuel affiché à droite du titre du hero. */
+export type HeroVisual = "terrain" | "flow" | "globe" | "none" | "terminal";
+
+export const HERO_VISUALS: readonly HeroVisual[] = [
+    "terrain",
+    "flow",
+    "globe",
+    "none",
+    "terminal",
+] as const;
+
+/**
+ * Normalise la valeur stockée. `graph` était le nom du visuel remplacé par
+ * le relief : on le traite en alias plutôt que de migrer les bases.
+ */
+export function toHeroVisual(value: unknown): HeroVisual {
+    if (value === "graph") return "terrain";
+    return HERO_VISUALS.includes(value as HeroVisual)
+        ? (value as HeroVisual)
+        : "terrain";
+}
+
 export interface SiteSettings {
     name: string;
     role: string;
@@ -23,11 +45,9 @@ export interface SiteSettings {
     statusText: string;
     heroCtaPrimary: string;
     heroCtaSecondary: string;
+    heroVisual: HeroVisual;
     heroTerminalTitle: string;
     heroTerminalCode: string;
-    contactUser: string;
-    contactCommand: string;
-    contactLines: string[];
     contactSendEmail: string;
     footerText: string;
     footerSubtext: string;
@@ -189,11 +209,9 @@ const FALLBACK_SETTINGS: SiteSettings = {
     statusText: "",
     heroCtaPrimary: "",
     heroCtaSecondary: "",
+    heroVisual: "terrain",
     heroTerminalTitle: "profile.rs",
     heroTerminalCode: "",
-    contactUser: "guest",
-    contactCommand: "./contact_me.sh",
-    contactLines: [],
     contactSendEmail: "",
     footerText: "",
     footerSubtext: "",
@@ -232,11 +250,9 @@ export function getSettings(lang: Lang): SiteSettings {
             statusText: pick(row.status_text, lang),
             heroCtaPrimary: pick(row.hero_cta_primary, lang),
             heroCtaSecondary: pick(row.hero_cta_secondary, lang),
+            heroVisual: toHeroVisual(row.hero_visual),
             heroTerminalTitle: row.hero_terminal_title || "profile.rs",
             heroTerminalCode: pick(row.hero_terminal_code, lang),
-            contactUser: row.contact_user || "guest",
-            contactCommand: row.contact_command || "./contact_me.sh",
-            contactLines: pickList(row.contact_lines, lang),
             contactSendEmail: pick(row.contact_send_email, lang),
             footerText: pick(row.footer_text, lang),
             footerSubtext: pick(row.footer_subtext, lang),

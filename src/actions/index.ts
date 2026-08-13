@@ -5,7 +5,7 @@ import {
 } from "astro:actions";
 import { z } from "astro:schema";
 import { get, run } from "../lib/db";
-import { invalidateContent } from "../lib/content";
+import { invalidateContent, toHeroVisual } from "../lib/content";
 import {
     changePassword,
     checkLoginRateLimit,
@@ -163,14 +163,14 @@ const settings = defineAction({
         hero_cta_primary_en: shortText,
         hero_cta_secondary_fr: shortText,
         hero_cta_secondary_en: shortText,
+        hero_visual: z.preprocess(
+            (value) => toHeroVisual(value),
+            z.enum(["terrain", "flow", "globe", "none", "terminal"]),
+        ),
         hero_terminal_title: shortText,
         hero_terminal_code_fr: text,
         hero_terminal_code_en: text,
 
-        contact_user: shortText,
-        contact_command: shortText,
-        contact_lines_fr: text,
-        contact_lines_en: text,
         contact_send_email_fr: shortText,
         contact_send_email_en: shortText,
 
@@ -209,8 +209,8 @@ const settings = defineAction({
                 name = ?, role = ?, description = ?, location = ?,
                 status_available = ?, status_text = ?,
                 hero_cta_primary = ?, hero_cta_secondary = ?,
+                hero_visual = ?,
                 hero_terminal_title = ?, hero_terminal_code = ?,
-                contact_user = ?, contact_command = ?, contact_lines = ?,
                 contact_send_email = ?,
                 footer_text = ?, footer_subtext = ?,
                 seo_title = ?, seo_description = ?, og_image_id = ?,
@@ -226,11 +226,9 @@ const settings = defineAction({
             packI18n(input.status_text_fr, input.status_text_en),
             packI18n(input.hero_cta_primary_fr, input.hero_cta_primary_en),
             packI18n(input.hero_cta_secondary_fr, input.hero_cta_secondary_en),
+            input.hero_visual,
             input.hero_terminal_title.trim() || "profile.rs",
             packI18n(input.hero_terminal_code_fr, input.hero_terminal_code_en),
-            input.contact_user.trim() || "guest",
-            input.contact_command.trim() || "./contact_me.sh",
-            packI18nList(input.contact_lines_fr, input.contact_lines_en, "newline"),
             packI18n(input.contact_send_email_fr, input.contact_send_email_en),
             packI18n(input.footer_text_fr, input.footer_text_en),
             packI18n(input.footer_subtext_fr, input.footer_subtext_en),

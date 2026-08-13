@@ -1,0 +1,282 @@
+---
+/**
+ * Visuel du hero : relief filaire ondulant.
+ *
+ * Une nappe 3D en fil de fer projetée en perspective, dont les crêtes
+ * s'illuminent. Purement décoratif : aucune donnée réelle n'est représentée.
+ *
+ * Rendu en canvas 2D avec projection maison — pas de dépendance 3D pour un
+ * maillage de cette taille, et le contrôle du dégradé crête/creux est direct.
+ */
+---
+
+<div class="terrain" aria-hidden="true">
+    <canvas id="hero-terrain"></canvas>
+</div>
+
+<style>
+    /* Le relief occupe tout le fond de la section. */
+    .terrain {
+        position: absolute;
+        inset: 0;
+    }
+
+    /* Masqué plutôt que recouvert : un dégradé opaque par-dessus dessinerait
+       un rectangle visible sur la grille du hero. */
+    .terrain canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        mask-image: radial-gradient(
+            ellipse 72% 70% at 50% 52%,
+            #000 45%,
+            transparent 100%
+        );
+        -webkit-mask-image: radial-gradient(
+            ellipse 72% 70% at 50% 52%,
+            #000 45%,
+            transparent 100%
+        );
+    }
+</style>
+
+<script>
+    (function () {
+        const element = document.getElementById("hero-terrain");
+        if (!(element instanceof HTMLCanvasElement)) return;
+
+        const context = element.getContext("2d");
+        if (!context) return;
+
+        // Alias non-null : le narrowing ne se propage pas dans les fonctions
+        // imbriquées, ces const gardent le type affiné.
+        const canvas = element;
+        const ctx = context;
+
+        const reducedMotion = window.matchMedia(
+            "(prefers-reduced-motion: reduce)",
+        ).matches;
+
+        // ── Maillage ────────────────────────────────────────────────────
+        const COLS = 46; // points par ligne (largeur)
+        const ROWS = 34; // lignes de profondeur
+        const SPACING = 1; // unités monde entre deux points
+        const AMPLITUDE = 2.2; // hauteur des vagues
+        const FOCAL = 26; // distance focale
+        const CAM_HEIGHT = 9; // hauteur de la caméra au-dessus de la nappe
+        const CAM_BACK = 7; // recul de la caméra devant la première ligne
+
+        /**
+         * Hauteur du relief en un point, à un instant donné.
+         *
+         * Somme de sinusoïdes de périodes non multiples : le motif ne se
+         * répète pas visiblement, pour un coût dérisoire comparé à un vrai
+         * bruit de Perlin.
+         */
+        function heightAt(x: number, z: number, t: number): number {
+            return (
+                Math.sin(x * 0.42 + t * 0.62) * 0.55 +
+                Math.cos(z * 0.35 - t * 0.48) * 0.5 +
+                Math.sin((x + z) * 0.26 + t * 0.35) * 0.38 +
+                Math.cos((x - z * 0.6) * 0.19 - t * 0.28) * 0.32
+            );
+        }
+
+        interface Point {
+            sx: number;
+            sy: number;
+            /** Hauteur normalisée 0–1, pilote la couleur. */
+            level: number;
+            /** Profondeur normalisée 0–1 (1 = près de la caméra). */
+            near: number;
+            visible: boolean;
+        }
+
+        let width = 0;
+        let height = 0;
+        let grid: Point[][] = [];
+
+        function resize() {
+            const rect = canvas.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            width = rect.width;
+            height = rect.height;
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        }
+
+        /**
+         * Projette tout le maillage pour l'instant `t`.
+         *
+         * Projection perspective classique : le facteur est `FOCAL / z`, où z
+         * est la distance à la caméra. C'est ce rapport qui creuse l'écart
+         * entre les lignes proches et lointaines et donne le relief ; un
+         * `FOCAL / (FOCAL + z)` aplatirait tout en un ruban.
+         */
+        function project(t: number) {
+            // L'échelle suit la largeur pour que la nappe déborde légèrement
+            // du cadre à l'avant, quelle que soit la taille du canvas.
+            const scale = width / 120;
+            const originX = width / 2;
+            const originY = height * 0.12;
+
+            grid = [];
+
+            const maxZ = (ROWS - 1) * SPACING;
+
+            for (let row = 0; row < ROWS; row++) {
+                const line: Point[] = [];
+                // Les lignes lointaines d'abord : on dessine du fond vers
+                // l'avant pour que l'avant recouvre l'arrière.
+                const z = (ROWS - 1 - row) * SPACING;
+                const distance = z + CAM_BACK;
+                const k = (FOCAL / distance) * scale;
+
+                for (let col = 0; col < COLS; col++) {
+                    const x = (col - (COLS - 1) / 2) * SPACING;
+                    const h = heightAt(x, z, t);
+
+                    line.push({
+                        sx: originX + x * k,
+                        sy: originY + (CAM_HEIGHT - h * AMPLITUDE) * k,
+                        level: (h + 1.75) / 3.5,
+                        near: 1 - z / maxZ,
+                        visible: true,
+                    });
+                }
+                grid.push(line);
+            }
+        }
+
+        // ── Palette ─────────────────────────────────────────────────────
+        // Creux : gris sombre presque éteint. Crêtes : orange d'accent.
+        function strokeFor(level: number, near: number): string {
+            const crest = Math.max(0, Math.min(1, (level - 0.52) / 0.42));
+            // La profondeur atténue tout : effet de brume.
+            const fade = 0.1 + near * 0.9;
+
+            if (crest <= 0.02) {
+                return `rgba(150, 145, 140, ${(0.05 + near * 0.16).toFixed(3)})`;
+            }
+
+            const r = Math.round(150 + (244 - 150) * crest);
+            const g = Math.round(145 + (140 - 145) * crest);
+            const b = Math.round(140 + (37 - 140) * crest);
+            const alpha = (0.06 + crest * 0.5) * fade;
+
+            return `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+        }
+
+        function drawSegment(a: Point, b: Point) {
+            const level = (a.level + b.level) / 2;
+            const near = (a.near + b.near) / 2;
+
+            ctx.strokeStyle = strokeFor(level, near);
+            ctx.lineWidth = 0.6 + near * 0.7;
+            ctx.beginPath();
+            ctx.moveTo(a.sx, a.sy);
+            ctx.lineTo(b.sx, b.sy);
+            ctx.stroke();
+        }
+
+        function draw(time: number) {
+            const t = time * 0.00055;
+            project(t);
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.lineCap = "round";
+
+            // Du fond vers l'avant.
+            for (let row = 0; row < ROWS; row++) {
+                const line = grid[row]!;
+
+                // Segments horizontaux
+                for (let col = 0; col < COLS - 1; col++) {
+                    drawSegment(line[col]!, line[col + 1]!);
+                }
+
+                // Segments de profondeur vers la ligne suivante
+                const next = grid[row + 1];
+                if (next) {
+                    for (let col = 0; col < COLS; col++) {
+                        drawSegment(line[col]!, next[col]!);
+                    }
+                }
+            }
+
+            // Halo sur les crêtes les plus hautes : quelques points lumineux
+            // qui donnent du relief sans surcharger.
+            ctx.globalCompositeOperation = "lighter";
+            for (let row = ROWS - 12; row < ROWS; row++) {
+                const line = grid[row];
+                if (!line) continue;
+                for (let col = 0; col < COLS; col += 2) {
+                    const p = line[col]!;
+                    if (p.level < 0.88) continue;
+                    const glow = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 14);
+                    glow.addColorStop(0, `rgba(244, 140, 37, ${0.16 * p.near})`);
+                    glow.addColorStop(1, "rgba(244, 140, 37, 0)");
+                    ctx.fillStyle = glow;
+                    ctx.beginPath();
+                    ctx.arc(p.sx, p.sy, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            ctx.globalCompositeOperation = "source-over";
+        }
+
+        // ── Boucle ──────────────────────────────────────────────────────
+        let raf = 0;
+        let running = false;
+
+        function frame(time: number) {
+            draw(time);
+            raf = requestAnimationFrame(frame);
+        }
+
+        function start() {
+            if (running || reducedMotion) return;
+            running = true;
+            raf = requestAnimationFrame(frame);
+        }
+
+        function stop() {
+            running = false;
+            cancelAnimationFrame(raf);
+        }
+
+        resize();
+
+        if (reducedMotion) {
+            // Rendu statique : la composition reste lisible sans animation.
+            draw(0);
+        } else {
+            // N'anime que si le hero est visible et l'onglet actif.
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    for (const entry of entries) {
+                        if (entry.isIntersecting && !document.hidden) start();
+                        else stop();
+                    }
+                },
+                { threshold: 0 },
+            );
+            observer.observe(canvas);
+
+            document.addEventListener("visibilitychange", () => {
+                if (document.hidden) stop();
+                else if (canvas.getBoundingClientRect().bottom > 0) start();
+            });
+        }
+
+        let resizeRaf = 0;
+        new ResizeObserver(() => {
+            cancelAnimationFrame(resizeRaf);
+            resizeRaf = requestAnimationFrame(() => {
+                resize();
+                if (!running) draw(performance.now());
+            });
+        }).observe(canvas);
+    })();
+</script>
