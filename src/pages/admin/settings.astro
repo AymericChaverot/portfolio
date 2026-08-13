@@ -1,0 +1,265 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import Field from "../../components/admin/Field.astro";
+import I18nField from "../../components/admin/I18nField.astro";
+import MediaPicker from "../../components/admin/MediaPicker.astro";
+import Toggle from "../../components/admin/Toggle.astro";
+import { get } from "../../lib/db";
+
+export const prerender = false;
+
+const result = Astro.getActionResult(actions.settings);
+
+// Motif POST-Redirect-GET : évite le renvoi du formulaire au rafraîchissement.
+if (result && !result.error) {
+    return Astro.redirect("/admin/settings?saved=1", 303);
+}
+
+const row = get<Record<string, any>>(`SELECT * FROM site_settings WHERE id = 1`)!;
+
+const saved = Astro.url.searchParams.has("saved");
+const error = result?.error?.message;
+---
+
+<AdminLayout title="Réglages du site">
+    <Alert type="success" message={saved ? "Réglages enregistrés." : null} />
+    <Alert type="error" message={error} />
+
+    <form method="POST" action={actions.settings}>
+        <!-- Identité -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Identité</h2>
+            <p class="admin-card-hint">
+                Le nom apparaît dans le logo, le titre de la page d'accueil et le
+                pied de page.
+            </p>
+
+            <Field name="name" label="Nom affiché" value={row.name} required />
+            <I18nField name="role" label="Intitulé du poste" value={row.role} />
+            <I18nField
+                name="description"
+                label="Présentation"
+                value={row.description}
+                type="textarea"
+                rows={4}
+                hint="Paragraphe d'introduction affiché sous le titre du hero."
+            />
+            <Field
+                name="location"
+                label="Localisation"
+                value={row.location}
+                placeholder="Lyon, France"
+            />
+        </section>
+
+        <!-- Statut -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Statut de disponibilité</h2>
+            <p class="admin-card-hint">
+                Petite pastille affichée au-dessus du nom. Laisse le texte vide
+                pour masquer complètement le badge.
+            </p>
+
+            <Toggle
+                name="status_available"
+                label="Disponible (pastille verte plutôt que rouge)"
+                checked={Boolean(row.status_available)}
+            />
+            <I18nField
+                name="status_text"
+                label="Texte du statut"
+                value={row.status_text}
+                placeholder="Actuellement en poste @ …"
+            />
+        </section>
+
+        <!-- Hero -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Section d'accueil</h2>
+            <p class="admin-card-hint">
+                Boutons d'appel à l'action et fenêtre de terminal du hero.
+            </p>
+
+            <div class="admin-grid-2">
+                <I18nField
+                    name="hero_cta_primary"
+                    label="Bouton principal"
+                    value={row.hero_cta_primary}
+                />
+                <I18nField
+                    name="hero_cta_secondary"
+                    label="Bouton secondaire"
+                    value={row.hero_cta_secondary}
+                />
+            </div>
+
+            <Field
+                name="hero_terminal_title"
+                label="Titre de la fenêtre de terminal"
+                value={row.hero_terminal_title}
+                placeholder="profile.rs — neovim"
+            />
+
+            <I18nField
+                name="hero_terminal_code"
+                label="Code affiché dans le terminal"
+                value={row.hero_terminal_code}
+                type="code"
+                hint="Code brut, sans HTML. La coloration syntaxique (style Rust) et la numérotation des lignes sont appliquées automatiquement. Laisse vide pour masquer le terminal."
+            />
+        </section>
+
+        <!-- Contact -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Section contact</h2>
+            <p class="admin-card-hint">
+                Le terminal de la section contact. Les liens eux-mêmes se gèrent
+                dans <a href="/admin/socials" class="text-primary hover:underline"
+                    >Liens & contact</a
+                >.
+            </p>
+
+            <div class="admin-grid-2">
+                <Field
+                    name="contact_user"
+                    label="Utilisateur affiché"
+                    value={row.contact_user}
+                    placeholder="guest@aymeric"
+                />
+                <Field
+                    name="contact_command"
+                    label="Commande affichée"
+                    value={row.contact_command}
+                    placeholder="./contact_me.sh"
+                />
+            </div>
+
+            <I18nField
+                name="contact_lines"
+                label="Lignes de sortie du terminal"
+                value={row.contact_lines}
+                type="list"
+                separator="newline"
+                rows={4}
+                hint="Une ligne par entrée. La dernière est mise en évidence en orange."
+            />
+
+            <I18nField
+                name="contact_send_email"
+                label="Libellé du bouton e-mail"
+                value={row.contact_send_email}
+            />
+        </section>
+
+        <!-- Pied de page -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Pied de page</h2>
+            <p class="admin-card-hint">
+                Les balises <code class="text-primary">{"{year}"}</code> et
+                <code class="text-primary">{"{name}"}</code> sont remplacées à
+                l'affichage.
+            </p>
+
+            <I18nField name="footer_text" label="Ligne principale" value={row.footer_text} />
+            <I18nField
+                name="footer_subtext"
+                label="Ligne secondaire"
+                value={row.footer_subtext}
+            />
+        </section>
+
+        <!-- CV -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">CV</h2>
+            <p class="admin-card-hint">
+                La page CV est générée automatiquement depuis ton parcours, ton
+                expertise et tes projets, avec une mise en page adaptée à
+                l'impression. Tu peux aussi joindre un PDF à télécharger.
+            </p>
+
+            <Toggle
+                name="resume_enabled"
+                label="Publier la page CV (/fr/resume et /en/resume)"
+                checked={Boolean(row.resume_enabled)}
+                hint="Désactivée, la page renvoie une 404 et le lien disparaît du menu mobile."
+            />
+
+            <MediaPicker
+                name="resume_pdf_id"
+                label="PDF à télécharger (optionnel)"
+                value={row.resume_pdf_id}
+                accept="pdf"
+                hint="Ajoute un bouton de téléchargement sur la page CV."
+            />
+        </section>
+
+        <!-- SEO -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Référencement & partage</h2>
+            <p class="admin-card-hint">
+                Ce que voient Google et les aperçus de liens sur les réseaux
+                sociaux.
+            </p>
+
+            <I18nField
+                name="seo_title"
+                label="Titre de la page d'accueil"
+                value={row.seo_title}
+                hint="Environ 60 caractères. Les autres pages ajoutent leur propre titre devant."
+            />
+            <I18nField
+                name="seo_description"
+                label="Méta description"
+                value={row.seo_description}
+                type="textarea"
+                rows={3}
+                hint="Environ 155 caractères."
+            />
+            <MediaPicker
+                name="og_image_id"
+                label="Image de partage (Open Graph)"
+                value={row.og_image_id}
+                hint="Idéalement 1200×630."
+            />
+        </section>
+
+        <!-- Apparence -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Apparence & langue</h2>
+
+            <div class="admin-grid-2">
+                <Field
+                    name="theme_color"
+                    label="Couleur d'accent"
+                    value={row.theme_color}
+                    type="color"
+                    hint="Utilisée pour les liens, les boutons et les surbrillances."
+                />
+                <Field
+                    name="default_lang"
+                    label="Langue par défaut"
+                    value={row.default_lang}
+                    type="select"
+                    options={[
+                        { value: "fr", label: "Français" },
+                        { value: "en", label: "English" },
+                    ]}
+                    hint="Langue servie à la racine du site si le navigateur n'exprime aucune préférence."
+                />
+            </div>
+        </section>
+
+        <div class="admin-sticky-actions">
+            <button type="submit" class="admin-button admin-button--primary">
+                <span class="material-icons">save</span>
+                Enregistrer
+            </button>
+            <a href="/fr" target="_blank" class="admin-button admin-button--ghost">
+                <span class="material-icons">open_in_new</span>
+                Voir le site
+            </a>
+        </div>
+    </form>
+</AdminLayout>

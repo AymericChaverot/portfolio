@@ -1,0 +1,23 @@
+---
+interface Props {
+    type?: "success" | "error" | "info";
+    message?: string | null;
+}
+
+const { type = "info", message } = Astro.props;
+
+const ICONS = {
+    success: "check_circle",
+    error: "error_outline",
+    info: "info",
+} as const;
+---
+
+{
+    message && (
+        <div class={`admin-alert admin-alert--${type}`} role="status">
+            <span class="material-icons">{ICONS[type]}</span>
+            <span>{message}</span>
+        </div>
+    )
+}

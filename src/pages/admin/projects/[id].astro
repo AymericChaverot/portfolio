@@ -1,0 +1,221 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import Alert from "../../../components/admin/Alert.astro";
+import Field from "../../../components/admin/Field.astro";
+import I18nField from "../../../components/admin/I18nField.astro";
+import MediaPicker from "../../../components/admin/MediaPicker.astro";
+import Toggle from "../../../components/admin/Toggle.astro";
+import { get } from "../../../lib/db";
+
+export const prerender = false;
+
+const { id } = Astro.params;
+const isNew = id === "new";
+
+const result = Astro.getActionResult(actions.project);
+
+if (result && !result.error) {
+    // Un nouveau projet a besoin de son identifiant : on le récupère dans le
+    // retour de l'action pour rediriger vers sa fiche.
+    return Astro.redirect(
+        isNew ? "/admin/projects?created=1" : `/admin/projects/${id}?saved=1`,
+        303,
+    );
+}
+
+const project = isNew
+    ? null
+    : get<Record<string, any>>(`SELECT * FROM projects WHERE id = ?`, Number(id));
+
+if (!isNew && !project) {
+    return Astro.redirect("/admin/projects", 302);
+}
+
+const saved = Astro.url.searchParams.has("saved");
+const error = result?.error?.message;
+
+const title = isNew ? "Nouveau projet" : `Modifier « ${project!.title} »`;
+---
+
+<AdminLayout
+    title={title}
+    parent={{ label: "Projets", href: "/admin/projects" }}
+>
+    <Alert type="success" message={saved ? "Projet enregistré." : null} />
+    <Alert type="error" message={error} />
+
+    <form method="POST" action={actions.project}>
+        {project && <input type="hidden" name="id" value={project.id} />}
+
+        <!-- Base -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Identité</h2>
+
+            <Field
+                name="title"
+                label="Titre"
+                value={project?.title}
+                required
+                placeholder="Nexus Framework"
+            />
+
+            <Field
+                name="slug"
+                label="Identifiant d'URL"
+                value={project?.slug}
+                placeholder="laissé vide = généré depuis le titre"
+                hint={`Adresse de la fiche : /fr/projects/${project?.slug ?? "…"}. Le changer casse les liens existants.`}
+            />
+
+            <I18nField
+                name="description"
+                label="Description courte"
+                value={project?.description}
+                type="textarea"
+                rows={3}
+                hint="Affichée sur la carte du projet, dans les grilles."
+            />
+
+            <I18nField
+                name="tags"
+                label="Technologies"
+                value={project?.tags}
+                type="list"
+                separator="comma"
+                hint="Séparées par des virgules. Servent aussi de filtres sur la page /projects."
+            />
+        </section>
+
+        <!-- Contenu de la fiche -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Contenu de la fiche</h2>
+            <p class="admin-card-hint">
+                Les sections vides ne sont pas affichées et ne sont pas
+                numérotées : une fiche sans architecture reste cohérente.
+            </p>
+
+            <I18nField
+                name="full_description"
+                label="Aperçu détaillé"
+                value={project?.full_description}
+                type="textarea"
+                rows={7}
+            />
+
+            <I18nField
+                name="architecture"
+                label="Architecture"
+                value={project?.architecture}
+                type="textarea"
+                rows={7}
+                hint="Comment le projet est construit, choix techniques, résultats mesurés."
+            />
+        </section>
+
+        <!-- Visuel -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Visuel</h2>
+
+            <MediaPicker
+                name="image_id"
+                label="Image du projet"
+                value={project?.image_id}
+                hint="Format paysage recommandé."
+            />
+
+            <I18nField
+                name="image_alt"
+                label="Texte alternatif de l'image"
+                value={project?.image_alt}
+                hint="Décrit l'image pour les lecteurs d'écran et si elle ne charge pas."
+            />
+        </section>
+
+        <!-- Badges et lien -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Statut & lien</h2>
+
+            <div class="admin-grid-2">
+                <I18nField
+                    name="badge"
+                    label="Badge (coin de l'image)"
+                    value={project?.badge}
+                    placeholder="0.1.1 / En ligne"
+                />
+                <I18nField
+                    name="status_text"
+                    label="Statut (bas de carte)"
+                    value={project?.status_text}
+                    placeholder="Actif / Open Source"
+                />
+            </div>
+
+            <Field
+                name="action_type"
+                label="Type d'action"
+                value={project?.action_type ?? "info"}
+                type="select"
+                options={[
+                    { value: "visit", label: "Site en ligne — bouton « Visiter »" },
+                    { value: "source", label: "Code source — bouton « Voir le code »" },
+                    {
+                        value: "info",
+                        label: "Informations seules — aucun lien externe",
+                    },
+                ]}
+                hint="« Site en ligne » et « Code source » exigent une URL ci-dessous : sans elle, le bouton serait mort."
+            />
+
+            <Field
+                name="action_url"
+                label="URL du projet"
+                value={project?.action_url}
+                type="url"
+                placeholder="https://github.com/…"
+                hint="Laisse vide uniquement avec le type « Informations seules »."
+            />
+        </section>
+
+        <!-- Publication -->
+        <section class="admin-card">
+            <h2 class="admin-card-title">Publication</h2>
+
+            <Toggle
+                name="visible"
+                label="Publier ce projet"
+                checked={project ? Boolean(project.visible) : true}
+                hint="Masqué, il disparaît du site et sa fiche renvoie une 404."
+            />
+
+            <Toggle
+                name="featured"
+                label="Mettre en avant sur la page d'accueil"
+                checked={project ? Boolean(project.featured) : true}
+                hint="Décoché, le projet reste accessible depuis la page /projects."
+            />
+        </section>
+
+        <div class="admin-sticky-actions">
+            <button type="submit" class="admin-button admin-button--primary">
+                <span class="material-icons">save</span>
+                Enregistrer
+            </button>
+            <a href="/admin/projects" class="admin-button admin-button--ghost">
+                Annuler
+            </a>
+            {
+                project && Boolean(project.visible) && (
+                    <a
+                        href={`/fr/projects/${project.slug}`}
+                        target="_blank"
+                        class="admin-button admin-button--ghost"
+                    >
+                        <span class="material-icons">open_in_new</span>
+                        Voir la fiche
+                    </a>
+                )
+            }
+        </div>
+    </form>
+</AdminLayout>

@@ -1,58 +1,92 @@
 ---
 import "../styles/global.css";
+import { getSettings } from "../lib/content";
+import { LANGS, switchLangPath, type Lang } from "../lib/i18n";
 
 interface Props {
-    title: string;
-    lang?: string;
+    /** Titre de la page. Le nom du site est ajouté automatiquement. */
+    title?: string;
+    description?: string;
+    lang: Lang;
+    /** Image de partage spécifique (page projet), sinon celle des réglages. */
+    image?: string | null;
+    /** Empêche l'indexation (admin, pages techniques). */
+    noindex?: boolean;
+    bodyClass?: string;
 }
 
-const { title, lang = "fr" } = Astro.props;
-const base = import.meta.env.BASE_URL;
+const {
+    title,
+    description,
+    lang,
+    image,
+    noindex = false,
+    bodyClass = "",
+} = Astro.props;
 
-// Generate absolute URLs for Open Graph metadata
-const siteUrl = Astro.site
-    ? new URL(base, Astro.site).href
-    : "https://aymericchaverot.github.io/portfolio/";
-const ogImageUrl = Astro.site
-    ? new URL((base + "/og-image.png").replace(/\/+/g, "/"), Astro.site).href
-    : `${siteUrl}og-image.png`;
-const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
-const description =
-    lang === "en"
-        ? "Developer and Systems Engineer | High-performance infrastructure, distributed systems, and low-level engineering."
-        : "Développeur et Ingénieur Système | Infrastructure haute performance, systèmes distribués et ingénierie bas niveau.";
+const settings = getSettings(lang);
+
+const pageTitle = title
+    ? `${title} | ${settings.name}`
+    : settings.seoTitle || settings.name;
+
+const pageDescription = description || settings.seoDescription;
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
+const ogImage = image
+    ? new URL(image, Astro.site ?? Astro.url).href
+    : settings.ogImage
+      ? new URL(settings.ogImage.url, Astro.site ?? Astro.url).href
+      : null;
 ---
 
 <!doctype html>
 <html class="dark" lang={lang}>
     <head>
         <meta charset="UTF-8" />
-        <meta name="description" content={description} />
-        <meta name="viewport" content="width=device-width" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="generator" content={Astro.generator} />
-        <link
-            rel="icon"
-            type="image/svg+xml"
-            href={(base + "/favicon.svg").replace(/\/+/g, "/")}
-        />
-        <title>{title}</title>
+
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <link rel="canonical" href={canonical} />
+        {noindex && <meta name="robots" content="noindex, nofollow" />}
+
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="alternate icon" href="/favicon.ico" />
+
+        {
+            LANGS.map((alt) => (
+                <link
+                    rel="alternate"
+                    hreflang={alt}
+                    href={
+                        new URL(
+                            switchLangPath(Astro.url.pathname, alt),
+                            Astro.site ?? Astro.url,
+                        ).href
+                    }
+                />
+            ))
+        }
 
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website" />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:title" content={title} />
-        <meta property="og:description" content={description} />
-        <meta property="og:image" content={ogImageUrl} />
+        <meta property="og:site_name" content={settings.name} />
+        <meta property="og:locale" content={lang === "fr" ? "fr_FR" : "en_US"} />
+        <meta property="og:url" content={canonical} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        {ogImage && <meta property="og:image" content={ogImage} />}
 
         <!-- Twitter -->
         <meta property="twitter:card" content="summary_large_image" />
-        <meta property="twitter:url" content={canonicalUrl} />
-        <meta property="twitter:title" content={title} />
-        <meta property="twitter:description" content={description} />
-        <meta property="twitter:image" content={ogImageUrl} />
+        <meta property="twitter:url" content={canonical} />
+        <meta property="twitter:title" content={pageTitle} />
+        <meta property="twitter:description" content={pageDescription} />
+        {ogImage && <meta property="twitter:image" content={ogImage} />}
 
-        <!-- Theme Color -->
-        <meta name="theme-color" content="#f48c25" />
+        <meta name="theme-color" content={settings.themeColor} />
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -61,85 +95,87 @@ const description =
             rel="stylesheet"
             href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
         />
-
-        <!-- Icons -->
         <link
             rel="stylesheet"
             href="https://fonts.googleapis.com/icon?family=Material+Icons"
         />
-        <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        />
 
-        <!-- Dark mode: applied before paint to avoid flash -->
-        <script is:inline>
-            if (
-                localStorage.theme === "dark" ||
-                (!("theme" in localStorage) &&
-                    window.matchMedia("(prefers-color-scheme: dark)").matches)
-            ) {
-                document.documentElement.classList.add("dark");
-            } else {
-                document.documentElement.classList.remove("dark");
-            }
-        </script>
+        {
+            /* La couleur d'accent est pilotée depuis l'admin : on surcharge
+               la variable Tailwind au niveau du document. */
+        }
+        <style set:html={`:root { --color-primary: ${settings.themeColor}; }`}></style>
     </head>
     <body
-        class="bg-background-light dark:bg-background-dark text-gray-800 dark:text-gray-200 font-display min-h-screen relative"
+        class={`bg-background-dark text-gray-200 font-display min-h-screen relative ${bodyClass}`}
     >
+        <a
+            href="#main-content"
+            class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:rounded focus:bg-primary focus:text-white focus:font-medium"
+        >
+            {lang === "fr" ? "Aller au contenu" : "Skip to content"}
+        </a>
+
         <div id="spotlight" class="spotlight"></div>
         <slot />
 
         <script>
             // ── Spotlight cursor effect ──────────────────────────────
             const spotlight = document.getElementById("spotlight");
-            let targetX = 0;
-            let targetY = 0;
-            let currentX = 0;
-            let currentY = 0;
+            const reducedMotion = window.matchMedia(
+                "(prefers-reduced-motion: reduce)",
+            ).matches;
 
-            document.addEventListener("mousemove", (e) => {
-                targetX = e.clientX;
-                targetY = e.clientY;
-            });
+            if (spotlight && !reducedMotion) {
+                let targetX = 0;
+                let targetY = 0;
+                let currentX = 0;
+                let currentY = 0;
 
-            document
-                .querySelectorAll('[data-spotlight="true"]')
-                .forEach((card) => {
-                    card.addEventListener("mouseenter", () => {
-                        const rect = card.getBoundingClientRect();
-                        targetX = rect.left + rect.width / 2;
-                        targetY = rect.top + rect.height / 2;
-                        spotlight?.classList.add("active-card");
-                    });
-                    card.addEventListener("mouseleave", () => {
-                        spotlight?.classList.remove("active-card");
-                    });
+                document.addEventListener("mousemove", (e) => {
+                    targetX = e.clientX;
+                    targetY = e.clientY;
                 });
 
-            function animateSpotlight() {
-                if (!spotlight) return;
-                currentX += (targetX - currentX) * 0.1;
-                currentY += (targetY - currentY) * 0.1;
-                spotlight.style.transform = `translate(${currentX}px, ${currentY}px) translate(-50%, -50%)`;
-                requestAnimationFrame(animateSpotlight);
+                document
+                    .querySelectorAll('[data-spotlight="true"]')
+                    .forEach((card) => {
+                        card.addEventListener("mouseenter", () => {
+                            const rect = card.getBoundingClientRect();
+                            targetX = rect.left + rect.width / 2;
+                            targetY = rect.top + rect.height / 2;
+                            spotlight.classList.add("active-card");
+                        });
+                        card.addEventListener("mouseleave", () => {
+                            spotlight.classList.remove("active-card");
+                        });
+                    });
+
+                const animateSpotlight = () => {
+                    currentX += (targetX - currentX) * 0.1;
+                    currentY += (targetY - currentY) * 0.1;
+                    spotlight.style.transform = `translate(${currentX}px, ${currentY}px) translate(-50%, -50%)`;
+                    requestAnimationFrame(animateSpotlight);
+                };
+
+                animateSpotlight();
             }
 
-            animateSpotlight();
-
             // ── Scroll reveal ────────────────────────────────────────
-            const observer = new IntersectionObserver(
-                (entries) =>
-                    entries.forEach((e) => {
-                        if (e.isIntersecting) e.target.classList.add("active");
-                    }),
-                { threshold: 0.1 },
-            );
+            const revealables = document.querySelectorAll(".reveal");
 
-            document
-                .querySelectorAll(".reveal")
-                .forEach((el) => observer.observe(el));
+            if (reducedMotion) {
+                revealables.forEach((el) => el.classList.add("active"));
+            } else {
+                const observer = new IntersectionObserver(
+                    (entries) =>
+                        entries.forEach((e) => {
+                            if (e.isIntersecting) e.target.classList.add("active");
+                        }),
+                    { threshold: 0.1 },
+                );
+                revealables.forEach((el) => observer.observe(el));
+            }
         </script>
     </body>
 </html>

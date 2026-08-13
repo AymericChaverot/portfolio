@@ -1,100 +1,83 @@
 ---
 import ProjectCard from "./ProjectCard.astro";
-import { SITE_CONFIG, type Lang } from "../config";
-import { PROJECTS, type Project } from "../data/projects";
+import { getFeaturedProjects, getProjects, getSection } from "../lib/content";
+import type { Lang } from "../lib/i18n";
 
 interface Props {
-    lang?: string;
+    lang: Lang;
 }
 
-interface ProjectsContent {
-    sectionTitle: string;
-    description: string;
-    cta: string;
-    projects: Project[];
-}
+const { lang } = Astro.props;
 
-type ActionType = "source" | "info" | "visit";
+const section = getSection(lang, "projects");
+const featured = getFeaturedProjects(lang);
+const total = getProjects(lang).length;
 
-const ACTION_CONFIG: Record<ActionType, { icon: string; en: string; fr: string }> = {
-    source: { icon: "code",   en: "View Source", fr: "Voir le code" },
-    info:   { icon: "info",   en: "More Info",   fr: "Plus d'infos" },
-    visit:  { icon: "launch", en: "Visit",       fr: "Visiter" },
-};
+// La page d'archive reste utile même quand tous les projets sont mis en
+// avant : elle offre le filtrage par technologie.
+const showAllLink = total > 0;
+const allProjectsUrl = `/${lang}/projects`;
+const ctaLabel =
+    section?.ctaLabel || (lang === "fr" ? "Tous les projets" : "All projects");
 
-const { lang = "fr" } = Astro.props;
-const currentLang = lang as Lang;
-
-const CONTENT: Record<Lang, ProjectsContent> = {
-    en: {
-        sectionTitle: "Selected Works",
-        description: "A showcase of technical challenges solved during my curriculum and personal exploration.",
-        cta: "git checkout all-projects",
-        projects: PROJECTS.en,
-    },
-    fr: {
-        sectionTitle: "Projets Réalisés",
-        description: "Un aperçu des défis techniques résolus durant mon cursus et mes explorations personnelles.",
-        cta: "git checkout tous-les-projets",
-        projects: PROJECTS.fr,
-    },
-};
-
-const t = CONTENT[currentLang];
-const base = import.meta.env.BASE_URL;
-const allProjectsUrl = SITE_CONFIG.allProjects[currentLang].startsWith('/')
-    ? base + SITE_CONFIG.allProjects[currentLang].slice(1)
-    : base + SITE_CONFIG.allProjects[currentLang];
+const delayClass = (index: number) =>
+    ["", "reveal-delay-100", "reveal-delay-200", "reveal-delay-300"][
+        Math.min(index % 3, 3)
+    ];
 ---
 
-<section class="py-24 relative bg-background-dark" id="projects">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col md:flex-row justify-between items-end mb-12 reveal">
-            <div>
-                <h2 class="text-3xl font-bold text-white mb-4">{t.sectionTitle}</h2>
-                <p class="text-gray-400 max-w-xl">{t.description}</p>
-            </div>
-            <a
-                class="hidden md:flex items-center text-primary hover:text-white transition-colors mt-4 md:mt-0 font-mono text-sm"
-                href={allProjectsUrl}
-            >
-                {t.cta}
-                <span class="material-icons text-sm ml-2">arrow_forward</span>
-            </a>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {t.projects.map((project, index) => {
-                const action = ACTION_CONFIG[project.actionType as ActionType];
-                return (
-                    <div class={`reveal reveal-delay-${(index + 1) * 100}`}>
-                        <ProjectCard
-                            title={project.title}
-                            description={project.description}
-                            tags={project.tags}
-                            image={project.image}
-                            imageAlt={project.imageAlt}
-                            badge={project.badge}
-                            statusText={project.statusText}
-                            actionUrl={project.actionUrl}
-                            actionLabel={action[currentLang]}
-                            actionIcon={action.icon}
-                            lang={currentLang}
-                            id={project.id}
-                        />
+{
+    featured.length > 0 && (
+        <section class="py-24 relative bg-background-dark" id="projects">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 reveal gap-4">
+                    <div>
+                        {section?.eyebrow && (
+                            <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
+                                {section.eyebrow}
+                            </h2>
+                        )}
+                        {section?.heading && (
+                            <h3 class="text-3xl font-bold text-white mb-4">
+                                {section.heading}
+                            </h3>
+                        )}
+                        {section?.subheading && (
+                            <p class="text-gray-400 max-w-xl">{section.subheading}</p>
+                        )}
                     </div>
-                );
-            })}
-        </div>
 
-        <div class="mt-8 md:hidden text-center">
-            <a
-                class="inline-flex items-center text-primary hover:text-white transition-colors font-mono text-sm"
-                href={allProjectsUrl}
-            >
-                {t.cta}
-                <span class="material-icons text-sm ml-2">arrow_forward</span>
-            </a>
-        </div>
-    </div>
-</section>
+                    {showAllLink && (
+                        <a
+                            class="hidden md:flex items-center text-primary hover:text-white transition-colors font-mono text-sm shrink-0"
+                            href={allProjectsUrl}
+                        >
+                            {ctaLabel}
+                            <span class="material-icons text-sm ml-2">arrow_forward</span>
+                        </a>
+                    )}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {featured.map((project, index) => (
+                        <div class:list={["reveal", delayClass(index)]}>
+                            <ProjectCard project={project} lang={lang} />
+                        </div>
+                    ))}
+                </div>
+
+                {showAllLink && (
+                    <div class="mt-8 md:hidden text-center">
+                        <a
+                            class="inline-flex items-center text-primary hover:text-white transition-colors font-mono text-sm"
+                            href={allProjectsUrl}
+                        >
+                            {ctaLabel}
+                            <span class="material-icons text-sm ml-2">arrow_forward</span>
+                        </a>
+                    </div>
+                )}
+            </div>
+        </section>
+    )
+}

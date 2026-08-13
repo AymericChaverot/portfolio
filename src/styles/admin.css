@@ -1,0 +1,689 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Interface d'administration.
+
+   Styles séparés du site public : l'admin est un outil, pas une vitrine.
+   On reprend la palette (fond noir, accent orange) pour la cohérence, mais
+   avec des densités et des composants de formulaire propres.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Structure ── */
+.admin-shell {
+    display: flex;
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    width: 16rem;
+    flex-shrink: 0;
+    background: #0a0a0a;
+    border-right: 1px solid rgba(255, 255, 255, 0.07);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    overflow-y: auto;
+}
+
+.admin-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1.4rem 1.25rem;
+    font-family: var(--font-mono, monospace);
+    font-weight: 700;
+    color: #fff;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.9rem;
+}
+
+.admin-nav {
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    flex: 1;
+}
+
+.admin-nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.6rem 0.75rem;
+    border-radius: 0.4rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    text-decoration: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition:
+        background 0.15s ease,
+        color 0.15s ease;
+}
+
+.admin-nav-link .material-icons {
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.admin-nav-link:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #fff;
+}
+
+.admin-nav-link--active {
+    background: rgba(244, 140, 37, 0.1);
+    color: #f48c25;
+}
+
+.admin-sidebar-footer {
+    padding: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.admin-user {
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.35);
+    padding: 0.6rem 0.75rem 0;
+}
+
+.admin-main {
+    flex: 1;
+    min-width: 0;
+    margin-left: 16rem;
+}
+
+.admin-topbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    background: rgba(5, 5, 5, 0.9);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.admin-breadcrumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
+    color: #f48c25;
+    text-decoration: none;
+    margin-bottom: 0.25rem;
+}
+
+.admin-breadcrumb .material-icons {
+    font-size: 0.9rem;
+}
+
+.admin-breadcrumb:hover {
+    color: #fff;
+}
+
+.admin-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.admin-content {
+    padding: 2rem;
+    max-width: 64rem;
+}
+
+.admin-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 30;
+}
+
+@media (max-width: 1023px) {
+    .admin-sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.2s ease;
+    }
+
+    .admin-sidebar--open {
+        transform: translateX(0);
+    }
+
+    .admin-main {
+        margin-left: 0;
+    }
+
+    .admin-topbar,
+    .admin-content {
+        padding: 1.25rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .admin-overlay {
+        display: none;
+    }
+}
+
+/* ── Cartes et sections ── */
+.admin-card {
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.6rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-card-title {
+    font-size: 0.75rem;
+    font-family: var(--font-mono, monospace);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #f48c25;
+    margin: 0 0 0.35rem;
+}
+
+.admin-card-hint {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin: 0 0 1.25rem;
+    line-height: 1.6;
+}
+
+/* ── Formulaires ── */
+.admin-field {
+    margin-bottom: 1.25rem;
+}
+
+.admin-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.4rem;
+}
+
+.admin-hint {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0.35rem 0 0;
+    line-height: 1.5;
+}
+
+.admin-input,
+.admin-textarea,
+.admin-select {
+    width: 100%;
+    background: #050505;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.4rem;
+    padding: 0.6rem 0.75rem;
+    color: #fff;
+    font-size: 0.875rem;
+    font-family: inherit;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.admin-input:focus,
+.admin-textarea:focus,
+.admin-select:focus {
+    outline: none;
+    border-color: rgba(244, 140, 37, 0.6);
+    box-shadow: 0 0 0 3px rgba(244, 140, 37, 0.12);
+}
+
+.admin-textarea {
+    resize: vertical;
+    min-height: 5rem;
+    line-height: 1.6;
+}
+
+.admin-textarea--code {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.8rem;
+    min-height: 14rem;
+    white-space: pre;
+    overflow-wrap: normal;
+    overflow-x: auto;
+}
+
+.admin-input--color {
+    padding: 0.25rem;
+    height: 2.6rem;
+    cursor: pointer;
+}
+
+/* Paire FR / EN */
+.admin-i18n {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+@media (max-width: 720px) {
+    .admin-i18n {
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-i18n-lang {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 0.25rem;
+    display: block;
+}
+
+/* Interrupteur */
+.admin-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.admin-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.admin-toggle-track {
+    width: 2.5rem;
+    height: 1.4rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.12);
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+}
+
+.admin-toggle-track::after {
+    content: "";
+    position: absolute;
+    top: 0.2rem;
+    left: 0.2rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s ease;
+}
+
+.admin-toggle input:checked + .admin-toggle-track {
+    background: #f48c25;
+}
+
+.admin-toggle input:checked + .admin-toggle-track::after {
+    transform: translateX(1.1rem);
+}
+
+.admin-toggle input:focus-visible + .admin-toggle-track {
+    box-shadow: 0 0 0 3px rgba(244, 140, 37, 0.35);
+}
+
+.admin-toggle-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.75);
+}
+
+/* ── Boutons ── */
+.admin-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 0.4rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    border: 1px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.admin-button .material-icons {
+    font-size: 1.05rem;
+}
+
+.admin-button--primary {
+    background: #f48c25;
+    color: #fff;
+}
+
+.admin-button--primary:hover {
+    background: #e07e18;
+}
+
+.admin-button--ghost {
+    background: transparent;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.admin-button--ghost:hover {
+    border-color: rgba(244, 140, 37, 0.5);
+    color: #fff;
+}
+
+.admin-button--danger {
+    background: transparent;
+    border-color: rgba(248, 113, 113, 0.35);
+    color: #f87171;
+}
+
+.admin-button--danger:hover {
+    background: rgba(248, 113, 113, 0.1);
+    border-color: rgba(248, 113, 113, 0.6);
+}
+
+.admin-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        color 0.15s ease;
+}
+
+.admin-icon-button .material-icons {
+    font-size: 1.05rem;
+}
+
+.admin-icon-button:hover:not(:disabled) {
+    border-color: rgba(244, 140, 37, 0.5);
+    color: #f48c25;
+}
+
+.admin-icon-button:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+}
+
+.admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    padding-top: 0.5rem;
+}
+
+/* Barre d'enregistrement collée en bas de l'écran */
+.admin-sticky-actions {
+    position: sticky;
+    bottom: 0;
+    background: rgba(5, 5, 5, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 1rem 0;
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+    z-index: 10;
+}
+
+/* ── Listes d'éléments ── */
+.admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.5rem;
+    padding: 0.9rem 1rem;
+    transition: border-color 0.15s ease;
+}
+
+.admin-item:hover {
+    border-color: rgba(244, 140, 37, 0.25);
+}
+
+.admin-item--hidden {
+    opacity: 0.45;
+}
+
+.admin-item-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.admin-item-title {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.9rem;
+    margin: 0 0 0.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.admin-item-meta {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-item-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.admin-item-thumb {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.35rem;
+    object-fit: cover;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    flex-shrink: 0;
+}
+
+/* ── Badges ── */
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+    border: 1px solid;
+}
+
+.admin-badge--on {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.4);
+    background: rgba(74, 222, 128, 0.08);
+}
+
+.admin-badge--off {
+    color: rgba(255, 255, 255, 0.45);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.admin-badge--accent {
+    color: #f48c25;
+    border-color: rgba(244, 140, 37, 0.4);
+    background: rgba(244, 140, 37, 0.08);
+}
+
+/* ── Messages ── */
+.admin-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border-radius: 0.45rem;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid;
+    line-height: 1.5;
+}
+
+.admin-alert .material-icons {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.admin-alert--success {
+    color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.35);
+    background: rgba(74, 222, 128, 0.07);
+}
+
+.admin-alert--error {
+    color: #f87171;
+    border-color: rgba(248, 113, 113, 0.35);
+    background: rgba(248, 113, 113, 0.07);
+}
+
+.admin-alert--info {
+    color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: rgba(255, 255, 255, 0.35);
+    font-size: 0.875rem;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* ── Grille de médias ── */
+.admin-media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.85rem;
+}
+
+.admin-media-tile {
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.admin-media-preview {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+    background: #000;
+    display: block;
+}
+
+.admin-media-info {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.admin-media-name {
+    color: #fff;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-bottom: 0.15rem;
+}
+
+/* ── Tableau de bord ── */
+.admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-stat {
+    background: #0a0a0a;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 0.5rem;
+    padding: 1.1rem;
+    text-decoration: none;
+    display: block;
+    transition: border-color 0.15s ease;
+}
+
+.admin-stat:hover {
+    border-color: rgba(244, 140, 37, 0.35);
+}
+
+.admin-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+}
+
+.admin-stat-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Divers ── */
+.admin-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    margin: 1.5rem 0;
+}
+
+.admin-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 720px) {
+    .admin-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}

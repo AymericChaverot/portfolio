@@ -1,76 +1,86 @@
 ---
+import type { TimelineItem } from "../lib/content";
+
 interface Props {
-    company: string;
-    role: string;
-    period: string;
-    location: string;
-    description: string;
-    tags: string[];
-    icon?: string;
-    current?: boolean;
-    badge?: string;
-    logo?: string;
+    item: TimelineItem;
     side?: "left" | "right";
 }
 
-const {
-    company,
-    role,
-    period,
-    location,
-    description,
-    tags,
-    icon = "work",
-    current = false,
-    badge = "En poste",
-    logo,
-    side = "left",
-} = Astro.props;
-
-const base = import.meta.env.BASE_URL;
-const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
+const { item, side = "left" } = Astro.props;
 ---
 
 <article class:list={["exp-card", { "exp-card--right": side === "right" }]}>
     <div class="timeline-dot" aria-hidden="true">
-        <span class="material-icons">{icon}</span>
+        <span class="material-icons">{item.icon}</span>
     </div>
 
     <div class="exp-card-inner">
-        {logoPath && (
-            <div class="exp-logo-wrap" aria-hidden="true">
-                <img src={logoPath} alt="" class="exp-logo" />
-            </div>
-        )}
+        {
+            item.logo && (
+                <div class="exp-logo-wrap" aria-hidden="true">
+                    <img
+                        src={item.logo.url}
+                        alt=""
+                        class="exp-logo"
+                        loading="lazy"
+                        decoding="async"
+                    />
+                </div>
+            )
+        }
 
         <header class="exp-card-header">
             <div class="exp-meta">
-                <div class="exp-period font-mono text-primary text-xs tracking-widest uppercase">
-                    {period}
-                </div>
-                {current && (
-                    <span class="exp-badge">
-                        <span class="exp-badge-dot" />
-                        {badge}
-                    </span>
-                )}
+                {
+                    item.period && (
+                        <div class="exp-period font-mono text-primary text-xs tracking-widest uppercase">
+                            {item.period}
+                        </div>
+                    )
+                }
+                {
+                    item.isCurrent && item.badge && (
+                        <span class="exp-badge">
+                            <span class="exp-badge-dot" />
+                            {item.badge}
+                        </span>
+                    )
+                }
             </div>
-            <h3 class="exp-role">{role}</h3>
+
+            <h3 class="exp-role">{item.role}</h3>
+
             <div class="exp-company-line">
-                <span class="exp-company">{company}</span>
-                <span class="exp-separator" aria-hidden="true">·</span>
-                <span class="exp-location">
-                    <span class="material-icons exp-location-icon">location_on</span>
-                    {location}
-                </span>
+                <span class="exp-company">{item.company}</span>
+                {
+                    item.location && (
+                        <>
+                            <span class="exp-separator" aria-hidden="true">
+                                ·
+                            </span>
+                            <span class="exp-location">
+                                <span class="material-icons exp-location-icon">
+                                    location_on
+                                </span>
+                                {item.location}
+                            </span>
+                        </>
+                    )
+                }
             </div>
         </header>
 
-        <p class="exp-description">{description}</p>
+        {item.description && <p class="exp-description">{item.description}</p>}
 
-        <footer class="exp-tags">
-            {tags.map((tag) => <span class="exp-tag">{tag}</span>)}
-        </footer>
+        {
+            item.tags.length > 0 && (
+                <footer class="exp-tags">
+                    {item.tags.map((tag) => (
+                        <span class="exp-tag">{tag}</span>
+                    ))}
+                </footer>
+            )
+        }
     </div>
 </article>
 
@@ -125,8 +135,16 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
         pointer-events: none;
         border-radius: inherit;
         overflow: hidden;
-        mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, black 30%, transparent 75%);
-        -webkit-mask-image: radial-gradient(ellipse 100% 100% at 100% 0%, black 30%, transparent 75%);
+        mask-image: radial-gradient(
+            ellipse 100% 100% at 100% 0%,
+            black 30%,
+            transparent 75%
+        );
+        -webkit-mask-image: radial-gradient(
+            ellipse 100% 100% at 100% 0%,
+            black 30%,
+            transparent 75%
+        );
         opacity: 0.12;
         transition: opacity 0.35s ease;
     }
@@ -155,8 +173,16 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
     .exp-card--right .exp-logo-wrap {
         right: auto;
         left: 0;
-        mask-image: radial-gradient(ellipse 100% 100% at 0% 0%, black 30%, transparent 75%);
-        -webkit-mask-image: radial-gradient(ellipse 100% 100% at 0% 0%, black 30%, transparent 75%);
+        mask-image: radial-gradient(
+            ellipse 100% 100% at 0% 0%,
+            black 30%,
+            transparent 75%
+        );
+        -webkit-mask-image: radial-gradient(
+            ellipse 100% 100% at 0% 0%,
+            black 30%,
+            transparent 75%
+        );
     }
 
     .exp-card--right .exp-logo {
@@ -168,6 +194,7 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
     /* ── Card inner ── */
     .exp-card-inner {
         flex: 1;
+        min-width: 0;
         background: rgba(10, 10, 10, 0.9);
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 0.75rem;
@@ -186,7 +213,11 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
         inset: 0;
         border-radius: inherit;
         pointer-events: none;
-        background: linear-gradient(135deg, rgba(244, 140, 37, 0.04) 0%, transparent 60%);
+        background: linear-gradient(
+            135deg,
+            rgba(244, 140, 37, 0.04) 0%,
+            transparent 60%
+        );
         opacity: 0;
         transition: opacity 0.4s ease;
     }
@@ -213,7 +244,11 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
     }
 
     .exp-card--right .exp-card-inner::before {
-        background: linear-gradient(225deg, rgba(244, 140, 37, 0.04) 0%, transparent 60%);
+        background: linear-gradient(
+            225deg,
+            rgba(244, 140, 37, 0.04) 0%,
+            transparent 60%
+        );
     }
 
     .exp-card--right .exp-meta,
@@ -244,6 +279,7 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
         align-items: center;
         gap: 0.75rem;
         margin-bottom: 0.4rem;
+        flex-wrap: wrap;
     }
 
     .exp-period {
@@ -256,7 +292,7 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
         gap: 0.35rem;
         background: rgba(10, 10, 10, 0.9);
         border: 1px solid rgba(37, 253, 0, 0.5);
-        color: #2bff0071;
+        color: #4ade80;
         font-size: 0.65rem;
         font-weight: 600;
         letter-spacing: 0.08em;
@@ -274,13 +310,20 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
     }
 
     @keyframes pulse-dot {
-        0%, 100% {
+        0%,
+        100% {
             opacity: 1;
             transform: scale(1);
         }
         50% {
             opacity: 0.5;
             transform: scale(0.7);
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .exp-badge-dot {
+            animation: none;
         }
     }
 
@@ -353,5 +396,38 @@ const logoPath = logo ? (base + "/" + logo).replace(/\/+/g, "/") : undefined;
     .exp-card:hover .exp-tag {
         background: rgba(244, 140, 37, 0.12);
         color: #f48c25;
+    }
+
+    /* ── Mobile ──
+       On garde la disposition en ligne : le tracé SVG de la timeline est
+       calculé à partir de la position des pastilles, passer en colonne le
+       ferait serpenter n'importe comment. On récupère juste de la largeur
+       pour le texte en resserrant l'écart et la pastille. */
+    @media (max-width: 640px) {
+        .exp-card {
+            gap: 0.875rem;
+        }
+
+        .timeline-dot {
+            width: 2.25rem;
+            height: 2.25rem;
+        }
+
+        .timeline-dot .material-icons {
+            font-size: 0.95rem;
+        }
+
+        .exp-card-inner {
+            padding: 1.125rem;
+        }
+
+        .exp-role {
+            font-size: 1.05rem;
+        }
+
+        /* Le logo en filigrane écrase le texte sur petit écran */
+        .exp-logo-wrap {
+            display: none;
+        }
     }
 </style>

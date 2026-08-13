@@ -1,0 +1,169 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import Field from "../../components/admin/Field.astro";
+import I18nField from "../../components/admin/I18nField.astro";
+import RowActions from "../../components/admin/RowActions.astro";
+import Toggle from "../../components/admin/Toggle.astro";
+import { all } from "../../lib/db";
+import { pick, pickList } from "../../lib/i18n";
+
+export const prerender = false;
+
+const formResult = Astro.getActionResult(actions.expertise);
+const moveResult = Astro.getActionResult(actions.list.move);
+const visResult = Astro.getActionResult(actions.list.toggleVisibility);
+const delResult = Astro.getActionResult(actions.list.remove);
+
+if (
+    [formResult, moveResult, visResult, delResult].some((r) => r && !r.error)
+) {
+    return Astro.redirect("/admin/expertise?saved=1", 303);
+}
+
+const cards = all<Record<string, any>>(
+    `SELECT * FROM expertise_cards ORDER BY position ASC, id ASC`,
+);
+
+const editing = Astro.url.searchParams.get("edit");
+const isNew = Astro.url.searchParams.has("new");
+const card = isNew ? null : cards.find((c) => String(c.id) === editing);
+const showForm = isNew || Boolean(card);
+
+const saved = Astro.url.searchParams.has("saved");
+const error =
+    formResult?.error?.message ||
+    moveResult?.error?.message ||
+    visResult?.error?.message ||
+    delResult?.error?.message;
+---
+
+<AdminLayout title="Cartes d'expertise">
+    <Alert type="success" message={saved ? "Modifications enregistrées." : null} />
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <h2 class="admin-card-title">Cartes</h2>
+                <p class="admin-card-hint mb-0">
+                    Affichées en grille dans la section Expertise.
+                </p>
+            </div>
+            <a href="/admin/expertise?new" class="admin-button admin-button--primary shrink-0">
+                <span class="material-icons">add</span>
+                Ajouter
+            </a>
+        </div>
+
+        {
+            cards.length === 0 ? (
+                <div class="admin-empty">
+                    Aucune carte d'expertise. La section n'apparaîtra pas sur le site.
+                </div>
+            ) : (
+                <div class="admin-list">
+                    {cards.map((item, index) => (
+                        <div
+                            class:list={[
+                                "admin-item",
+                                !item.visible && "admin-item--hidden",
+                            ]}
+                        >
+                            <span class="material-icons text-primary">{item.icon}</span>
+
+                            <div class="admin-item-body">
+                                <p class="admin-item-title">
+                                    {pick(item.title, "fr") || "(sans titre)"}
+                                    {!item.visible && (
+                                        <span class="admin-badge admin-badge--off">Masquée</span>
+                                    )}
+                                </p>
+                                <p class="admin-item-meta">
+                                    {pickList(item.skills, "fr").join(" · ") || "Aucune compétence listée"}
+                                </p>
+                            </div>
+
+                            <RowActions
+                                table="expertise_cards"
+                                id={item.id}
+                                visible={Boolean(item.visible)}
+                                isFirst={index === 0}
+                                isLast={index === cards.length - 1}
+                                editHref={`/admin/expertise?edit=${item.id}`}
+                                deleteLabel="Supprimer cette carte d'expertise ?"
+                            />
+                        </div>
+                    ))}
+                </div>
+            )
+        }
+    </div>
+
+    {
+        showForm && (
+            <div class="admin-card">
+                <h2 class="admin-card-title">
+                    {card ? "Modifier la carte" : "Nouvelle carte"}
+                </h2>
+                <p class="admin-card-hint">
+                    L'icône utilise le catalogue Material Icons (memory, dns, code,
+                    cloud, security…).
+                </p>
+
+                <form method="POST" action={actions.expertise}>
+                    {card && <input type="hidden" name="id" value={card.id} />}
+
+                    <Field
+                        name="icon"
+                        label="Icône Material"
+                        value={card?.icon ?? "code"}
+                        placeholder="code"
+                        hint="Nom exact tiré de fonts.google.com/icons."
+                    />
+
+                    <I18nField
+                        name="title"
+                        label="Titre"
+                        value={card?.title}
+                        required
+                    />
+
+                    <I18nField
+                        name="description"
+                        label="Description"
+                        value={card?.description}
+                        type="textarea"
+                        rows={4}
+                    />
+
+                    <I18nField
+                        name="skills"
+                        label="Compétences listées"
+                        value={card?.skills}
+                        type="list"
+                        separator="comma"
+                        hint="Séparées par des virgules. Chacune apparaît sur sa ligne avec une puce."
+                    />
+
+                    <Toggle
+                        name="visible"
+                        label="Afficher sur le site"
+                        checked={card ? Boolean(card.visible) : true}
+                    />
+
+                    <div class="admin-actions">
+                        <button type="submit" class="admin-button admin-button--primary">
+                            <span class="material-icons">save</span>
+                            Enregistrer
+                        </button>
+                        <a href="/admin/expertise" class="admin-button admin-button--ghost">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+</AdminLayout>

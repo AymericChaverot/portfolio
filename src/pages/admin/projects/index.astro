@@ -1,0 +1,130 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../../layouts/AdminLayout.astro";
+import Alert from "../../../components/admin/Alert.astro";
+import RowActions from "../../../components/admin/RowActions.astro";
+import { all } from "../../../lib/db";
+import { pickList } from "../../../lib/i18n";
+
+export const prerender = false;
+
+const moveResult = Astro.getActionResult(actions.list.move);
+const visResult = Astro.getActionResult(actions.list.toggleVisibility);
+const delResult = Astro.getActionResult(actions.list.remove);
+
+if ([moveResult, visResult, delResult].some((r) => r && !r.error)) {
+    return Astro.redirect("/admin/projects?saved=1", 303);
+}
+
+const projects = all<Record<string, any>>(
+    `SELECT p.*, m.filename AS image_filename
+     FROM projects p
+     LEFT JOIN media m ON m.id = p.image_id
+     ORDER BY p.position ASC, p.id ASC`,
+);
+
+const saved = Astro.url.searchParams.has("saved");
+const created = Astro.url.searchParams.has("created");
+const error =
+    moveResult?.error?.message ||
+    visResult?.error?.message ||
+    delResult?.error?.message;
+
+const ACTION_LABELS: Record<string, string> = {
+    source: "Code source",
+    visit: "Site en ligne",
+    info: "Informations",
+};
+---
+
+<AdminLayout title="Projets">
+    <Alert
+        type="success"
+        message={created
+            ? "Projet créé."
+            : saved
+              ? "Modifications enregistrées."
+              : null}
+    />
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <h2 class="admin-card-title">Tous les projets</h2>
+                <p class="admin-card-hint mb-0">
+                    Les projets « mis en avant » apparaissent sur la page
+                    d'accueil ; tous les projets visibles apparaissent sur la
+                    page /projects.
+                </p>
+            </div>
+            <a
+                href="/admin/projects/new"
+                class="admin-button admin-button--primary shrink-0"
+            >
+                <span class="material-icons">add</span>
+                Nouveau
+            </a>
+        </div>
+
+        {
+            projects.length === 0 ? (
+                <div class="admin-empty">
+                    Aucun projet. La section Projets n'apparaîtra pas sur le site.
+                </div>
+            ) : (
+                <div class="admin-list">
+                    {projects.map((project, index) => (
+                        <div
+                            class:list={[
+                                "admin-item",
+                                !project.visible && "admin-item--hidden",
+                            ]}
+                        >
+                            {project.image_filename ? (
+                                <img
+                                    src={`/media/${project.image_filename}`}
+                                    alt=""
+                                    class="admin-item-thumb"
+                                />
+                            ) : (
+                                <span class="material-icons text-neutral-700">image</span>
+                            )}
+
+                            <div class="admin-item-body">
+                                <p class="admin-item-title">
+                                    {project.title}
+                                    {Boolean(project.featured) && (
+                                        <span class="admin-badge admin-badge--accent">
+                                            Accueil
+                                        </span>
+                                    )}
+                                    {!project.visible && (
+                                        <span class="admin-badge admin-badge--off">Masqué</span>
+                                    )}
+                                </p>
+                                <p class="admin-item-meta">
+                                    /{project.slug}
+                                    {" · "}
+                                    {ACTION_LABELS[project.action_type] ?? project.action_type}
+                                    {pickList(project.tags, "fr").length > 0 &&
+                                        ` · ${pickList(project.tags, "fr").join(", ")}`}
+                                </p>
+                            </div>
+
+                            <RowActions
+                                table="projects"
+                                id={project.id}
+                                visible={Boolean(project.visible)}
+                                isFirst={index === 0}
+                                isLast={index === projects.length - 1}
+                                editHref={`/admin/projects/${project.id}`}
+                                deleteLabel={`Supprimer le projet « ${project.title} » ?`}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )
+        }
+    </div>
+</AdminLayout>

@@ -1,20 +1,26 @@
 {
-  "name": "temp",
+  "name": "portfolio",
   "type": "module",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "start": "node ./dist/server/entry.mjs",
+    "check": "astro check",
+    "test:e2e": "node ./scripts/e2e.mjs"
   },
   "dependencies": {
+    "@astrojs/node": "^9.5.5",
     "@tailwindcss/vite": "^4.1.18",
     "astro": "^5.17.1",
-    "tailwindcss": "^4.1.18"
+    "sharp": "^0.34.5",
+    "tailwindcss": "^4.1.18",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.9",
+    "@types/node": "^26.2.0",
     "typescript": "^5.9.3"
   }
 }

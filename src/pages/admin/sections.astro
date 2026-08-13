@@ -1,0 +1,195 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import I18nField from "../../components/admin/I18nField.astro";
+import RowActions from "../../components/admin/RowActions.astro";
+import Toggle from "../../components/admin/Toggle.astro";
+import { all } from "../../lib/db";
+import { pick } from "../../lib/i18n";
+
+export const prerender = false;
+
+const sectionResult = Astro.getActionResult(actions.section);
+const moveResult = Astro.getActionResult(actions.list.move);
+const visResult = Astro.getActionResult(actions.list.toggleVisibility);
+
+if (
+    (sectionResult && !sectionResult.error) ||
+    (moveResult && !moveResult.error) ||
+    (visResult && !visResult.error)
+) {
+    return Astro.redirect("/admin/sections?saved=1", 303);
+}
+
+const sections = all<Record<string, any>>(
+    `SELECT * FROM sections ORDER BY position ASC, id ASC`,
+);
+
+/** Ce que chaque section pilote, pour que l'écran reste compréhensible. */
+const DESCRIPTIONS: Record<string, string> = {
+    hero: "Bandeau d'accueil : nom, statut, boutons et terminal. Son contenu se règle dans Réglages du site.",
+    expertise: "Grille des cartes de compétences.",
+    experience: "Timeline du parcours professionnel et de la formation.",
+    projects: "Grille des projets mis en avant.",
+    contact: "Terminal de contact et pied de page.",
+};
+
+const CONTENT_LINKS: Record<string, string> = {
+    expertise: "/admin/expertise",
+    experience: "/admin/experience",
+    projects: "/admin/projects",
+    contact: "/admin/socials",
+    hero: "/admin/settings",
+};
+
+const editing = Astro.url.searchParams.get("edit");
+const editingSection = sections.find((s) => String(s.id) === editing);
+
+const saved = Astro.url.searchParams.has("saved");
+const error =
+    sectionResult?.error?.message ||
+    moveResult?.error?.message ||
+    visResult?.error?.message;
+---
+
+<AdminLayout title="Sections de la page d'accueil">
+    <Alert type="success" message={saved ? "Section mise à jour." : null} />
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Ordre et visibilité</h2>
+        <p class="admin-card-hint">
+            L'ordre ci-dessous est celui de la page d'accueil. Masquer une
+            section la retire de la page et du menu. Les sections ne peuvent pas
+            être supprimées — leur structure est liée au code — mais elles
+            peuvent être entièrement masquées.
+        </p>
+
+        <div class="admin-list">
+            {
+                sections.map((section, index) => (
+                    <div
+                        class:list={[
+                            "admin-item",
+                            !section.visible && "admin-item--hidden",
+                        ]}
+                    >
+                        <div class="admin-item-body">
+                            <p class="admin-item-title">
+                                {pick(section.heading, "fr") ||
+                                    pick(section.nav_label, "fr") ||
+                                    section.key}
+                                <span class="admin-badge admin-badge--accent">
+                                    {section.key}
+                                </span>
+                                {section.visible ? (
+                                    <span class="admin-badge admin-badge--on">Visible</span>
+                                ) : (
+                                    <span class="admin-badge admin-badge--off">Masquée</span>
+                                )}
+                                {Boolean(section.in_nav) && (
+                                    <span class="admin-badge admin-badge--off">Menu</span>
+                                )}
+                            </p>
+                            <p class="admin-item-meta">
+                                {DESCRIPTIONS[section.key] ?? ""}
+                                {CONTENT_LINKS[section.key] && (
+                                    <>
+                                        {" "}
+                                        <a
+                                            href={CONTENT_LINKS[section.key]}
+                                            class="text-primary hover:underline"
+                                        >
+                                            Gérer le contenu
+                                        </a>
+                                    </>
+                                )}
+                            </p>
+                        </div>
+
+                        <RowActions
+                            table="sections"
+                            id={section.id}
+                            visible={Boolean(section.visible)}
+                            isFirst={index === 0}
+                            isLast={index === sections.length - 1}
+                            editHref={`/admin/sections?edit=${section.id}`}
+                            deletable={false}
+                        />
+                    </div>
+                ))
+            }
+        </div>
+    </div>
+
+    {
+        editingSection && (
+            <div class="admin-card" id="edit">
+                <h2 class="admin-card-title">
+                    Modifier la section « {editingSection.key} »
+                </h2>
+                <p class="admin-card-hint">
+                    Les titres laissés vides ne sont tout simplement pas affichés.
+                </p>
+
+                <form method="POST" action={actions.section}>
+                    <input type="hidden" name="id" value={editingSection.id} />
+
+                    <I18nField
+                        name="nav_label"
+                        label="Libellé dans le menu"
+                        value={editingSection.nav_label}
+                    />
+                    <I18nField
+                        name="eyebrow"
+                        label="Sur-titre (petit texte orange)"
+                        value={editingSection.eyebrow}
+                    />
+                    <I18nField
+                        name="heading"
+                        label="Titre de section"
+                        value={editingSection.heading}
+                    />
+                    <I18nField
+                        name="subheading"
+                        label="Sous-titre"
+                        value={editingSection.subheading}
+                        type="textarea"
+                        rows={2}
+                    />
+                    {editingSection.key === "projects" && (
+                        <I18nField
+                            name="cta_label"
+                            label="Libellé du lien « tous les projets »"
+                            value={editingSection.cta_label}
+                        />
+                    )}
+
+                    <hr class="admin-divider" />
+
+                    <Toggle
+                        name="visible"
+                        label="Afficher cette section sur le site"
+                        checked={Boolean(editingSection.visible)}
+                    />
+                    <Toggle
+                        name="in_nav"
+                        label="Afficher un lien dans le menu de navigation"
+                        checked={Boolean(editingSection.in_nav)}
+                    />
+
+                    <div class="admin-actions">
+                        <button type="submit" class="admin-button admin-button--primary">
+                            <span class="material-icons">save</span>
+                            Enregistrer
+                        </button>
+                        <a href="/admin/sections" class="admin-button admin-button--ghost">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+</AdminLayout>

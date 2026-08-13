@@ -1,0 +1,75 @@
+---
+/** Champ simple non traduisible (nom propre, URL, icône, couleur…). */
+interface Props {
+    name: string;
+    label: string;
+    value?: string | number | null;
+    hint?: string;
+    type?: "text" | "url" | "color" | "textarea" | "select";
+    placeholder?: string;
+    required?: boolean;
+    rows?: number;
+    /** Pour type="select". */
+    options?: { value: string; label: string }[];
+}
+
+const {
+    name,
+    label,
+    value,
+    hint,
+    type = "text",
+    placeholder,
+    required = false,
+    rows = 3,
+    options = [],
+} = Astro.props;
+
+const stringValue = value === null || value === undefined ? "" : String(value);
+---
+
+<div class="admin-field">
+    <label class="admin-label" for={name}>
+        {label}
+        {required && <span class="text-primary"> *</span>}
+    </label>
+
+    {
+        type === "textarea" ? (
+            // `set:text` : un enfant hériterait de l'indentation du gabarit,
+            // qui se retrouverait en espaces au début du champ.
+            <textarea
+                id={name}
+                name={name}
+                rows={rows}
+                required={required}
+                placeholder={placeholder}
+                class="admin-textarea"
+                set:text={stringValue}
+            />
+        ) : type === "select" ? (
+            <select id={name} name={name} class="admin-select" required={required}>
+                {options.map((option) => (
+                    <option value={option.value} selected={option.value === stringValue}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
+        ) : (
+            <input
+                id={name}
+                name={name}
+                type={type === "color" ? "color" : type === "url" ? "url" : "text"}
+                value={stringValue}
+                required={required}
+                placeholder={placeholder}
+                class:list={[
+                    "admin-input",
+                    type === "color" && "admin-input--color",
+                ]}
+            />
+        )
+    }
+
+    {hint && <p class="admin-hint">{hint}</p>}
+</div>

@@ -1,0 +1,188 @@
+---
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import { all, get } from "../../lib/db";
+import { getSettings } from "../../lib/content";
+
+export const prerender = false;
+
+const counts = get<Record<string, number>>(`
+    SELECT
+        (SELECT COUNT(*) FROM projects WHERE visible = 1)        AS projects_visible,
+        (SELECT COUNT(*) FROM projects)                          AS projects_total,
+        (SELECT COUNT(*) FROM timeline_items WHERE visible = 1)  AS timeline_visible,
+        (SELECT COUNT(*) FROM timeline_items)                    AS timeline_total,
+        (SELECT COUNT(*) FROM expertise_cards WHERE visible = 1) AS expertise_visible,
+        (SELECT COUNT(*) FROM expertise_cards)                   AS expertise_total,
+        (SELECT COUNT(*) FROM media)                             AS media_total,
+        (SELECT COUNT(*) FROM sections WHERE visible = 1)        AS sections_visible,
+        (SELECT COUNT(*) FROM sections)                          AS sections_total,
+        (SELECT COUNT(*) FROM socials WHERE visible = 1)         AS socials_visible
+`)!;
+
+const settings = getSettings("fr");
+
+/**
+ * Points à corriger : ce sont exactement les défauts qui produisaient des
+ * liens morts ou des sections vides sur le site public.
+ */
+const warnings: { message: string; href: string }[] = [];
+
+const projectsWithoutDescription = get<{ n: number }>(`
+    SELECT COUNT(*) AS n FROM projects
+    WHERE visible = 1
+      AND (json_extract(full_description, '$.fr') IS NULL
+           OR trim(json_extract(full_description, '$.fr')) = '')
+`)!.n;
+
+if (projectsWithoutDescription > 0) {
+    warnings.push({
+        message: `${projectsWithoutDescription} projet(s) visible(s) sans description détaillée : leur fiche paraîtra vide.`,
+        href: "/admin/projects",
+    });
+}
+
+// Le contenu d'origine utilisait « Blabla » comme texte d'architecture : il a
+// été laissé vide à la migration plutôt que d'inventer du contenu technique.
+const projectsWithoutArchitecture = all<{ title: string }>(`
+    SELECT title FROM projects
+    WHERE visible = 1
+      AND (json_extract(architecture, '$.fr') IS NULL
+           OR trim(json_extract(architecture, '$.fr')) = '')
+    ORDER BY position ASC
+`);
+
+if (projectsWithoutArchitecture.length > 0) {
+    warnings.push({
+        message: `Section « Architecture » à rédiger pour : ${projectsWithoutArchitecture
+            .map((p) => p.title)
+            .join(", ")}.`,
+        href: "/admin/projects",
+    });
+}
+
+const projectsWithoutImage = get<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM projects WHERE visible = 1 AND image_id IS NULL`,
+)!.n;
+
+if (projectsWithoutImage > 0) {
+    warnings.push({
+        message: `${projectsWithoutImage} projet(s) visible(s) sans visuel.`,
+        href: "/admin/projects",
+    });
+}
+
+if (counts.projects_visible === 0) {
+    warnings.push({
+        message: "Aucun projet visible : la section Projets sera absente du site.",
+        href: "/admin/projects",
+    });
+}
+
+if (!settings.ogImage) {
+    warnings.push({
+        message:
+            "Aucune image de partage définie : les liens vers le site n'auront pas d'aperçu.",
+        href: "/admin/settings",
+    });
+}
+
+const STATS = [
+    {
+        href: "/admin/projects",
+        label: "Projets visibles",
+        value: `${counts.projects_visible} / ${counts.projects_total}`,
+    },
+    {
+        href: "/admin/experience",
+        label: "Entrées de parcours",
+        value: `${counts.timeline_visible} / ${counts.timeline_total}`,
+    },
+    {
+        href: "/admin/expertise",
+        label: "Cartes d'expertise",
+        value: `${counts.expertise_visible} / ${counts.expertise_total}`,
+    },
+    {
+        href: "/admin/sections",
+        label: "Sections actives",
+        value: `${counts.sections_visible} / ${counts.sections_total}`,
+    },
+    {
+        href: "/admin/socials",
+        label: "Liens de contact",
+        value: String(counts.socials_visible),
+    },
+    {
+        href: "/admin/media",
+        label: "Fichiers",
+        value: String(counts.media_total),
+    },
+];
+
+const saved = Astro.url.searchParams.has("saved");
+---
+
+<AdminLayout title="Tableau de bord">
+    <Alert type="success" message={saved ? "Modifications enregistrées." : null} />
+
+    <div class="admin-stats">
+        {
+            STATS.map((stat) => (
+                <a href={stat.href} class="admin-stat">
+                    <div class="admin-stat-value">{stat.value}</div>
+                    <div class="admin-stat-label">{stat.label}</div>
+                </a>
+            ))
+        }
+    </div>
+
+    {
+        warnings.length > 0 && (
+            <div class="admin-card">
+                <h2 class="admin-card-title">À compléter</h2>
+                <p class="admin-card-hint">
+                    Ces points laissent des parties du site vides ou incomplètes.
+                </p>
+                <ul class="space-y-2">
+                    {warnings.map((warning) => (
+                        <li class="flex items-start gap-2 text-sm text-gray-400">
+                            <span class="material-icons text-yellow-500 text-base shrink-0">
+                                warning_amber
+                            </span>
+                            <span>
+                                {warning.message}{" "}
+                                <a href={warning.href} class="text-primary hover:underline">
+                                    Corriger
+                                </a>
+                            </span>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        )
+    }
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Raccourcis</h2>
+        <p class="admin-card-hint">Les actions les plus fréquentes.</p>
+        <div class="admin-actions">
+            <a href="/admin/projects/new" class="admin-button admin-button--primary">
+                <span class="material-icons">add</span>
+                Nouveau projet
+            </a>
+            <a href="/admin/experience" class="admin-button admin-button--ghost">
+                <span class="material-icons">work_history</span>
+                Ajouter une expérience
+            </a>
+            <a href="/admin/media" class="admin-button admin-button--ghost">
+                <span class="material-icons">upload</span>
+                Envoyer une image
+            </a>
+            <a href="/fr" target="_blank" class="admin-button admin-button--ghost">
+                <span class="material-icons">visibility</span>
+                Prévisualiser le site
+            </a>
+        </div>
+    </div>
+</AdminLayout>

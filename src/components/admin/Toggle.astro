@@ -1,0 +1,27 @@
+---
+/**
+ * Interrupteur booléen.
+ *
+ * Une case décochée n'est tout simplement pas envoyée par le navigateur :
+ * côté action, le schéma `checkbox` traite l'absence de valeur comme false.
+ * (Pas d'input hidden de secours : il y aurait deux valeurs pour la même
+ * clé et `FormData.get` ne renverrait que la première.)
+ */
+interface Props {
+    name: string;
+    label: string;
+    checked?: boolean;
+    hint?: string;
+}
+
+const { name, label, checked = false, hint } = Astro.props;
+---
+
+<div class="admin-field">
+    <label class="admin-toggle">
+        <input type="checkbox" name={name} value="true" checked={checked} />
+        <span class="admin-toggle-track"></span>
+        <span class="admin-toggle-label">{label}</span>
+    </label>
+    {hint && <p class="admin-hint">{hint}</p>}
+</div>

@@ -1,0 +1,137 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import { all } from "../../lib/db";
+import { MIN_PASSWORD_LENGTH } from "../../lib/auth";
+
+export const prerender = false;
+
+const result = Astro.getActionResult(actions.account.changePassword);
+
+if (result && !result.error) {
+    // Le changement de mot de passe invalide toutes les sessions, y compris
+    // celle-ci : la redirection tombe naturellement sur l'écran de connexion.
+    return Astro.redirect("/admin/login?next=/admin/account", 303);
+}
+
+const user = Astro.locals.user!;
+
+const sessions = all<{ created_at: number; user_agent: string | null; ip: string | null }>(
+    `SELECT created_at, user_agent, ip FROM sessions
+     WHERE user_id = ? AND expires_at > ?
+     ORDER BY created_at DESC`,
+    user.id,
+    Date.now(),
+);
+
+const error = result?.error?.message;
+
+const formatDate = (ms: number) =>
+    new Intl.DateTimeFormat("fr-FR", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(ms));
+---
+
+<AdminLayout title="Compte">
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Identité</h2>
+        <dl class="text-sm space-y-2">
+            <div class="flex gap-3">
+                <dt class="text-gray-500 w-40 shrink-0">Identifiant</dt>
+                <dd class="text-white font-mono">{user.username}</dd>
+            </div>
+            <div class="flex gap-3">
+                <dt class="text-gray-500 w-40 shrink-0">Compte créé le</dt>
+                <dd class="text-gray-300">{formatDate(user.created_at)}</dd>
+            </div>
+            <div class="flex gap-3">
+                <dt class="text-gray-500 w-40 shrink-0">Dernière connexion</dt>
+                <dd class="text-gray-300">
+                    {user.last_login_at ? formatDate(user.last_login_at) : "—"}
+                </dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Changer le mot de passe</h2>
+        <p class="admin-card-hint">
+            Toutes les sessions ouvertes seront déconnectées, y compris
+            celle-ci : tu devras te reconnecter juste après.
+        </p>
+
+        <form method="POST" action={actions.account.changePassword}>
+            <div class="admin-field">
+                <label class="admin-label" for="current">Mot de passe actuel</label>
+                <input
+                    id="current"
+                    name="current"
+                    type="password"
+                    class="admin-input"
+                    autocomplete="current-password"
+                    required
+                />
+            </div>
+
+            <div class="admin-field">
+                <label class="admin-label" for="password">Nouveau mot de passe</label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    class="admin-input"
+                    autocomplete="new-password"
+                    minlength={MIN_PASSWORD_LENGTH}
+                    required
+                />
+                <p class="admin-hint">{MIN_PASSWORD_LENGTH} caractères minimum.</p>
+            </div>
+
+            <div class="admin-field">
+                <label class="admin-label" for="confirm">Confirmation</label>
+                <input
+                    id="confirm"
+                    name="confirm"
+                    type="password"
+                    class="admin-input"
+                    autocomplete="new-password"
+                    minlength={MIN_PASSWORD_LENGTH}
+                    required
+                />
+            </div>
+
+            <button type="submit" class="admin-button admin-button--primary">
+                <span class="material-icons">key</span>
+                Changer le mot de passe
+            </button>
+        </form>
+    </div>
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Sessions actives ({sessions.length})</h2>
+        <p class="admin-card-hint">
+            Un appareil inconnu dans cette liste ? Change ton mot de passe : cela
+            révoque toutes les sessions.
+        </p>
+
+        <div class="admin-list">
+            {
+                sessions.map((session) => (
+                    <div class="admin-item">
+                        <span class="material-icons text-gray-600">devices</span>
+                        <div class="admin-item-body">
+                            <p class="admin-item-title">{formatDate(session.created_at)}</p>
+                            <p class="admin-item-meta">
+                                {session.ip ?? "IP inconnue"} · {session.user_agent ?? "Navigateur inconnu"}
+                            </p>
+                        </div>
+                    </div>
+                ))
+            }
+        </div>
+    </div>
+</AdminLayout>

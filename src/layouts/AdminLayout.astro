@@ -1,0 +1,173 @@
+---
+import "../styles/global.css";
+import "../styles/admin.css";
+import { actions } from "astro:actions";
+
+interface Props {
+    title: string;
+    /** Masque la navigation : pages de connexion et de création de compte. */
+    bare?: boolean;
+    /** Fil d'ariane simple affiché au-dessus du titre. */
+    parent?: { label: string; href: string };
+}
+
+const { title, bare = false, parent } = Astro.props;
+
+const user = Astro.locals.user;
+const path = Astro.url.pathname;
+
+const NAV = [
+    { href: "/admin", label: "Tableau de bord", icon: "dashboard" },
+    { href: "/admin/settings", label: "Réglages du site", icon: "tune" },
+    { href: "/admin/sections", label: "Sections", icon: "view_agenda" },
+    { href: "/admin/expertise", label: "Expertise", icon: "workspace_premium" },
+    { href: "/admin/experience", label: "Parcours", icon: "timeline" },
+    { href: "/admin/projects", label: "Projets", icon: "folder_special" },
+    { href: "/admin/socials", label: "Liens & contact", icon: "share" },
+    { href: "/admin/media", label: "Médias", icon: "photo_library" },
+    { href: "/admin/account", label: "Compte", icon: "account_circle" },
+];
+
+/** Le tableau de bord ne doit pas rester actif sur toutes les sous-pages. */
+const isActive = (href: string) =>
+    href === "/admin" ? path === "/admin" : path.startsWith(href);
+---
+
+<!doctype html>
+<html lang="fr" class="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="robots" content="noindex, nofollow" />
+        <title>{title} · Administration</title>
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        />
+    </head>
+    <body class="bg-background-dark text-gray-200 font-display min-h-screen">
+        {
+            bare ? (
+                <main class="min-h-screen flex items-center justify-center p-4">
+                    <slot />
+                </main>
+            ) : (
+                <div class="admin-shell">
+                    <!-- Barre latérale -->
+                    <aside class="admin-sidebar" id="admin-sidebar">
+                        <div class="admin-brand">
+                            <span class="material-icons text-primary">terminal</span>
+                            <span>Administration</span>
+                        </div>
+
+                        <nav class="admin-nav">
+                            {NAV.map((item) => (
+                                <a
+                                    href={item.href}
+                                    class:list={[
+                                        "admin-nav-link",
+                                        isActive(item.href) && "admin-nav-link--active",
+                                    ]}
+                                >
+                                    <span class="material-icons">{item.icon}</span>
+                                    {item.label}
+                                </a>
+                            ))}
+                        </nav>
+
+                        <div class="admin-sidebar-footer">
+                            <a href="/" target="_blank" class="admin-nav-link">
+                                <span class="material-icons">open_in_new</span>
+                                Voir le site
+                            </a>
+
+                            <form method="POST" action={actions.account.logout}>
+                                <button type="submit" class="admin-nav-link w-full">
+                                    <span class="material-icons">logout</span>
+                                    Déconnexion
+                                </button>
+                            </form>
+
+                            {user && (
+                                <p class="admin-user">
+                                    Connecté en tant que <strong>{user.username}</strong>
+                                </p>
+                            )}
+                        </div>
+                    </aside>
+
+                    <!-- Contenu -->
+                    <div class="admin-main">
+                        <header class="admin-topbar">
+                            <button
+                                type="button"
+                                id="sidebar-toggle"
+                                class="admin-icon-button lg:hidden"
+                                aria-label="Ouvrir le menu"
+                                aria-controls="admin-sidebar"
+                                aria-expanded="false"
+                            >
+                                <span class="material-icons">menu</span>
+                            </button>
+
+                            <div>
+                                {parent && (
+                                    <a href={parent.href} class="admin-breadcrumb">
+                                        <span class="material-icons">arrow_back</span>
+                                        {parent.label}
+                                    </a>
+                                )}
+                                <h1 class="admin-title">{title}</h1>
+                            </div>
+                        </header>
+
+                        <main class="admin-content">
+                            <slot />
+                        </main>
+                    </div>
+
+                    <div class="admin-overlay" id="admin-overlay" hidden />
+                </div>
+            )
+        }
+
+        <script is:inline>
+            (function () {
+                const toggle = document.getElementById("sidebar-toggle");
+                const sidebar = document.getElementById("admin-sidebar");
+                const overlay = document.getElementById("admin-overlay");
+                if (!toggle || !sidebar || !overlay) return;
+
+                const setOpen = (open) => {
+                    sidebar.classList.toggle("admin-sidebar--open", open);
+                    overlay.hidden = !open;
+                    toggle.setAttribute("aria-expanded", String(open));
+                };
+
+                toggle.addEventListener("click", () =>
+                    setOpen(!sidebar.classList.contains("admin-sidebar--open")),
+                );
+                overlay.addEventListener("click", () => setOpen(false));
+                document.addEventListener("keydown", (e) => {
+                    if (e.key === "Escape") setOpen(false);
+                });
+            })();
+
+            // Confirmation avant toute action destructrice.
+            document.addEventListener("submit", (event) => {
+                const form = event.target;
+                const message = form?.dataset?.confirm;
+                if (message && !window.confirm(message)) {
+                    event.preventDefault();
+                }
+            });
+        </script>
+    </body>
+</html>

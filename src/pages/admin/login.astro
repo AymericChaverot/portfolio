@@ -1,0 +1,76 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+
+export const prerender = false;
+
+const result = Astro.getActionResult(actions.account.login);
+
+/** Redirection post-connexion, restreinte à l'admin pour éviter un open redirect. */
+const rawNext = Astro.url.searchParams.get("next") ?? "/admin";
+const next =
+    rawNext.startsWith("/admin") && !rawNext.startsWith("//")
+        ? rawNext
+        : "/admin";
+
+if (result && !result.error) {
+    return Astro.redirect(next, 303);
+}
+
+const error = result?.error?.message;
+---
+
+<AdminLayout title="Connexion" bare>
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+            <span class="material-icons text-primary text-4xl mb-3">terminal</span>
+            <h1 class="text-2xl font-bold text-white">Administration</h1>
+            <p class="text-gray-500 text-sm mt-1">
+                Connecte-toi pour modifier le contenu du site.
+            </p>
+        </div>
+
+        <div class="admin-card">
+            <Alert type="error" message={error} />
+
+            <form method="POST" action={actions.account.login}>
+                <div class="admin-field">
+                    <label class="admin-label" for="username">Identifiant</label>
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        class="admin-input"
+                        autocomplete="username"
+                        required
+                        autofocus
+                    />
+                </div>
+
+                <div class="admin-field">
+                    <label class="admin-label" for="password">Mot de passe</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        class="admin-input"
+                        autocomplete="current-password"
+                        required
+                    />
+                </div>
+
+                <button type="submit" class="admin-button admin-button--primary w-full">
+                    <span class="material-icons">login</span>
+                    Se connecter
+                </button>
+            </form>
+        </div>
+
+        <p class="text-center mt-6">
+            <a href="/" class="text-gray-600 hover:text-primary text-sm transition-colors">
+                &larr; Retour au site
+            </a>
+        </p>
+    </div>
+</AdminLayout>

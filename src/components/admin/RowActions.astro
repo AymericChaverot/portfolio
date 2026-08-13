@@ -1,0 +1,131 @@
+---
+import { actions } from "astro:actions";
+
+/**
+ * Contrôles d'une ligne de liste : monter, descendre, afficher/masquer,
+ * modifier, supprimer.
+ *
+ * Chaque contrôle est un formulaire distinct — les formulaires HTML ne
+ * peuvent pas être imbriqués, et chacun cible une action différente.
+ */
+interface Props {
+    table:
+        | "socials"
+        | "sections"
+        | "expertise_cards"
+        | "timeline_groups"
+        | "timeline_items"
+        | "projects";
+    id: number;
+    visible: boolean;
+    /** Désactive les flèches aux extrémités de la liste. */
+    isFirst?: boolean;
+    isLast?: boolean;
+    /** Tri à l'intérieur d'un groupe (entrées de timeline). */
+    groupId?: number;
+    editHref?: string;
+    /** Les sections ne se suppriment pas : elles se masquent. */
+    deletable?: boolean;
+    deleteLabel?: string;
+}
+
+const {
+    table,
+    id,
+    visible,
+    isFirst = false,
+    isLast = false,
+    groupId,
+    editHref,
+    deletable = true,
+    deleteLabel = "Supprimer définitivement cet élément ?",
+} = Astro.props;
+---
+
+<div class="admin-item-controls">
+    <!-- Tri -->
+    <form method="POST" action={actions.list.move}>
+        <input type="hidden" name="table" value={table} />
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="direction" value="up" />
+        {groupId && <input type="hidden" name="groupId" value={groupId} />}
+        <button
+            type="submit"
+            class="admin-icon-button"
+            disabled={isFirst}
+            aria-label="Monter"
+            title="Monter"
+        >
+            <span class="material-icons">arrow_upward</span>
+        </button>
+    </form>
+
+    <form method="POST" action={actions.list.move}>
+        <input type="hidden" name="table" value={table} />
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="direction" value="down" />
+        {groupId && <input type="hidden" name="groupId" value={groupId} />}
+        <button
+            type="submit"
+            class="admin-icon-button"
+            disabled={isLast}
+            aria-label="Descendre"
+            title="Descendre"
+        >
+            <span class="material-icons">arrow_downward</span>
+        </button>
+    </form>
+
+    <!-- Visibilité -->
+    <form method="POST" action={actions.list.toggleVisibility}>
+        <input type="hidden" name="table" value={table} />
+        <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="visible" value={visible ? "false" : "true"} />
+        <button
+            type="submit"
+            class="admin-icon-button"
+            aria-label={visible ? "Masquer sur le site" : "Afficher sur le site"}
+            title={visible ? "Masquer sur le site" : "Afficher sur le site"}
+        >
+            <span class="material-icons">
+                {visible ? "visibility" : "visibility_off"}
+            </span>
+        </button>
+    </form>
+
+    <!-- Édition -->
+    {
+        editHref && (
+            <a
+                href={editHref}
+                class="admin-icon-button"
+                aria-label="Modifier"
+                title="Modifier"
+            >
+                <span class="material-icons">edit</span>
+            </a>
+        )
+    }
+
+    <!-- Suppression -->
+    {
+        deletable && (
+            <form
+                method="POST"
+                action={actions.list.remove}
+                data-confirm={deleteLabel}
+            >
+                <input type="hidden" name="table" value={table} />
+                <input type="hidden" name="id" value={id} />
+                <button
+                    type="submit"
+                    class="admin-icon-button"
+                    aria-label="Supprimer"
+                    title="Supprimer"
+                >
+                    <span class="material-icons">delete_outline</span>
+                </button>
+            </form>
+        )
+    }
+</div>

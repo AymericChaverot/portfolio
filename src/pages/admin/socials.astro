@@ -1,0 +1,183 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import Field from "../../components/admin/Field.astro";
+import Icon from "../../components/Icon.astro";
+import RowActions from "../../components/admin/RowActions.astro";
+import Toggle from "../../components/admin/Toggle.astro";
+import { all } from "../../lib/db";
+
+export const prerender = false;
+
+const formResult = Astro.getActionResult(actions.social);
+const moveResult = Astro.getActionResult(actions.list.move);
+const visResult = Astro.getActionResult(actions.list.toggleVisibility);
+const delResult = Astro.getActionResult(actions.list.remove);
+
+if ([formResult, moveResult, visResult, delResult].some((r) => r && !r.error)) {
+    return Astro.redirect("/admin/socials?saved=1", 303);
+}
+
+const socials = all<Record<string, any>>(
+    `SELECT * FROM socials ORDER BY position ASC, id ASC`,
+);
+
+const editing = Astro.url.searchParams.get("edit");
+const isNew = Astro.url.searchParams.has("new");
+const social = isNew ? null : socials.find((s) => String(s.id) === editing);
+const showForm = isNew || Boolean(social);
+
+/** Icônes de marque dessinées en SVG ; tout autre nom passe par Material Icons. */
+const BRAND_ICONS = [
+    "github",
+    "linkedin",
+    "gitlab",
+    "x",
+    "twitter",
+    "instagram",
+    "youtube",
+    "discord",
+    "bluesky",
+    "stackoverflow",
+    "website",
+    "email",
+    "link",
+];
+
+const saved = Astro.url.searchParams.has("saved");
+const error =
+    formResult?.error?.message ||
+    moveResult?.error?.message ||
+    visResult?.error?.message ||
+    delResult?.error?.message;
+---
+
+<AdminLayout title="Liens & contact">
+    <Alert type="success" message={saved ? "Modifications enregistrées." : null} />
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <h2 class="admin-card-title">Liens</h2>
+                <p class="admin-card-hint mb-0">
+                    Affichés dans la section contact et sur le CV. Le premier lien
+                    <code class="text-primary">mailto:</code> sert de bouton principal.
+                </p>
+            </div>
+            <a href="/admin/socials?new" class="admin-button admin-button--primary shrink-0">
+                <span class="material-icons">add</span>
+                Ajouter
+            </a>
+        </div>
+
+        {
+            socials.length === 0 ? (
+                <div class="admin-empty">Aucun lien de contact.</div>
+            ) : (
+                <div class="admin-list">
+                    {socials.map((item, index) => (
+                        <div
+                            class:list={[
+                                "admin-item",
+                                !item.visible && "admin-item--hidden",
+                            ]}
+                        >
+                            <span class="text-primary shrink-0">
+                                <Icon name={item.icon} size="1.4rem" />
+                            </span>
+
+                            <div class="admin-item-body">
+                                <p class="admin-item-title">
+                                    {item.name}
+                                    {!item.visible && (
+                                        <span class="admin-badge admin-badge--off">Masqué</span>
+                                    )}
+                                </p>
+                                <p class="admin-item-meta">{item.url}</p>
+                            </div>
+
+                            <RowActions
+                                table="socials"
+                                id={item.id}
+                                visible={Boolean(item.visible)}
+                                isFirst={index === 0}
+                                isLast={index === socials.length - 1}
+                                editHref={`/admin/socials?edit=${item.id}`}
+                                deleteLabel={`Supprimer le lien « ${item.name} » ?`}
+                            />
+                        </div>
+                    ))}
+                </div>
+            )
+        }
+    </div>
+
+    {
+        showForm && (
+            <div class="admin-card">
+                <h2 class="admin-card-title">
+                    {social ? `Modifier « ${social.name} »` : "Nouveau lien"}
+                </h2>
+
+                <form method="POST" action={actions.social}>
+                    {social && <input type="hidden" name="id" value={social.id} />}
+
+                    <Field
+                        name="name"
+                        label="Nom affiché"
+                        value={social?.name}
+                        placeholder="GitHub"
+                        required
+                    />
+
+                    <Field
+                        name="url"
+                        label="URL"
+                        value={social?.url}
+                        placeholder="https://github.com/…"
+                        required
+                        hint="Doit commencer par https://, http://, mailto: ou tel:"
+                    />
+
+                    <div class="admin-field">
+                        <label class="admin-label" for="icon">Icône</label>
+                        <input
+                            id="icon"
+                            name="icon"
+                            type="text"
+                            list="brand-icons"
+                            value={social?.icon ?? "link"}
+                            class="admin-input"
+                            placeholder="github"
+                        />
+                        <datalist id="brand-icons">
+                            {BRAND_ICONS.map((icon) => <option value={icon} />)}
+                        </datalist>
+                        <p class="admin-hint">
+                            Logos disponibles : {BRAND_ICONS.join(", ")}. Tout autre
+                            nom est cherché dans Material Icons.
+                        </p>
+                    </div>
+
+                    <Toggle
+                        name="visible"
+                        label="Afficher sur le site"
+                        checked={social ? Boolean(social.visible) : true}
+                    />
+
+                    <div class="admin-actions">
+                        <button type="submit" class="admin-button admin-button--primary">
+                            <span class="material-icons">save</span>
+                            Enregistrer
+                        </button>
+                        <a href="/admin/socials" class="admin-button admin-button--ghost">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+</AdminLayout>

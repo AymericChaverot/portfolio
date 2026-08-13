@@ -1,0 +1,509 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Navbar from "../../components/Navbar.astro";
+import Icon from "../../components/Icon.astro";
+import {
+    getExpertiseCards,
+    getProjects,
+    getSettings,
+    getSocials,
+    getTimelineGroups,
+} from "../../lib/content";
+import { isLang, type Lang } from "../../lib/i18n";
+
+export const prerender = false;
+
+const { lang: rawLang } = Astro.params;
+if (!isLang(rawLang)) {
+    return Astro.rewrite("/404");
+}
+
+const lang = rawLang as Lang;
+const settings = getSettings(lang);
+
+// Le CV peut être désactivé depuis l'admin : dans ce cas la page n'existe pas.
+if (!settings.resumeEnabled) {
+    return Astro.rewrite("/404");
+}
+
+const groups = getTimelineGroups(lang);
+const expertise = getExpertiseCards(lang);
+const projects = getProjects(lang).filter((p) => p.featured);
+const socials = getSocials();
+
+const t = {
+    fr: {
+        title: "CV",
+        back: "Retour à l'accueil",
+        print: "Imprimer / PDF",
+        download: "Télécharger le PDF",
+        skills: "Compétences",
+        projects: "Projets",
+        contact: "Contact",
+        generated: "Généré depuis aymericchaverot.fr",
+    },
+    en: {
+        title: "Resume",
+        back: "Back to home",
+        print: "Print / PDF",
+        download: "Download PDF",
+        skills: "Skills",
+        projects: "Projects",
+        contact: "Contact",
+        generated: "Generated from aymericchaverot.fr",
+    },
+}[lang];
+---
+
+<Layout lang={lang} title={t.title} description={settings.seoDescription}>
+    <div class="no-print">
+        <Navbar lang={lang} />
+    </div>
+
+    <main id="main-content" class="pt-32 pb-20 print:pt-0 print:pb-0">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 print:max-w-none print:px-0">
+            <!-- Barre d'actions, masquée à l'impression -->
+            <div
+                class="no-print flex flex-wrap items-center justify-between gap-4 mb-12"
+            >
+                <a
+                    href={`/${lang}`}
+                    class="inline-flex items-center text-primary hover:text-white transition-colors font-mono text-sm"
+                >
+                    <span class="material-icons text-sm mr-2">arrow_back</span>
+                    {t.back}
+                </a>
+
+                <div class="flex flex-wrap gap-3">
+                    {
+                        settings.resumePdf && (
+                            <a
+                                href={settings.resumePdf.url}
+                                download
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded border border-neutral-800 text-gray-300 hover:border-primary hover:text-primary transition-all font-medium text-sm bg-surface-dark"
+                            >
+                                <span class="material-icons text-sm">download</span>
+                                {t.download}
+                            </a>
+                        )
+                    }
+                    <button
+                        type="button"
+                        id="print-button"
+                        class="inline-flex items-center gap-2 px-5 py-2.5 rounded bg-primary text-white hover:bg-primary/90 transition-all font-medium text-sm shadow-lg shadow-primary/20"
+                    >
+                        <span class="material-icons text-sm">print</span>
+                        {t.print}
+                    </button>
+                </div>
+            </div>
+
+            <article class="resume">
+                <!-- En-tête -->
+                <header class="resume-header">
+                    <h1 class="resume-name">{settings.name}</h1>
+                    {settings.role && <p class="resume-role">{settings.role}</p>}
+
+                    <div class="resume-contacts">
+                        {
+                            settings.location && (
+                                <span class="resume-contact">
+                                    <span class="material-icons resume-contact-icon">
+                                        location_on
+                                    </span>
+                                    {settings.location}
+                                </span>
+                            )
+                        }
+                        {
+                            socials.map((social) => (
+                                <a class="resume-contact" href={social.url}>
+                                    <Icon
+                                        name={social.icon}
+                                        size="0.9em"
+                                        class="resume-contact-icon"
+                                    />
+                                    {social.url.replace(/^mailto:/, "").replace(/^https?:\/\/(www\.)?/, "")}
+                                </a>
+                            ))
+                        }
+                    </div>
+
+                    {
+                        settings.description && (
+                            <p class="resume-summary">{settings.description}</p>
+                        )
+                    }
+                </header>
+
+                <!-- Parcours -->
+                {
+                    groups.map((group) => (
+                        <section class="resume-section">
+                            <h2 class="resume-section-title">{group.heading}</h2>
+                            <div class="resume-entries">
+                                {group.items.map((item) => (
+                                    <div class="resume-entry">
+                                        <div class="resume-entry-head">
+                                            <h3 class="resume-entry-role">{item.role}</h3>
+                                            <span class="resume-entry-period">{item.period}</span>
+                                        </div>
+                                        <div class="resume-entry-meta">
+                                            <span class="resume-entry-company">{item.company}</span>
+                                            {item.location && (
+                                                <>
+                                                    <span aria-hidden="true"> · </span>
+                                                    <span>{item.location}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                        {item.description && (
+                                            <p class="resume-entry-description">
+                                                {item.description}
+                                            </p>
+                                        )}
+                                        {item.tags.length > 0 && (
+                                            <p class="resume-entry-tags">
+                                                {item.tags.join(" · ")}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    ))
+                }
+
+                <!-- Compétences -->
+                {
+                    expertise.length > 0 && (
+                        <section class="resume-section">
+                            <h2 class="resume-section-title">{t.skills}</h2>
+                            <div class="resume-skills">
+                                {expertise.map((card) => (
+                                    <div class="resume-skill">
+                                        <h3 class="resume-skill-title">{card.title}</h3>
+                                        <p class="resume-skill-list">
+                                            {card.skills.join(" · ")}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )
+                }
+
+                <!-- Projets -->
+                {
+                    projects.length > 0 && (
+                        <section class="resume-section">
+                            <h2 class="resume-section-title">{t.projects}</h2>
+                            <div class="resume-entries">
+                                {projects.map((project) => (
+                                    <div class="resume-entry">
+                                        <div class="resume-entry-head">
+                                            <h3 class="resume-entry-role">{project.title}</h3>
+                                            {project.actionUrl && (
+                                                <a
+                                                    class="resume-entry-period resume-link"
+                                                    href={project.actionUrl}
+                                                >
+                                                    {project.actionUrl.replace(
+                                                        /^https?:\/\/(www\.)?/,
+                                                        "",
+                                                    )}
+                                                </a>
+                                            )}
+                                        </div>
+                                        <p class="resume-entry-description">
+                                            {project.description}
+                                        </p>
+                                        {project.tags.length > 0 && (
+                                            <p class="resume-entry-tags">
+                                                {project.tags.join(" · ")}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    )
+                }
+
+                <footer class="resume-footer print-only">
+                    {t.generated}
+                </footer>
+            </article>
+        </div>
+    </main>
+</Layout>
+
+<style>
+    /* ── Écran : sobre, dans la charte du site ── */
+    .resume {
+        background: #0a0a0a;
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 0.75rem;
+        padding: 3rem;
+        color: rgba(255, 255, 255, 0.75);
+    }
+
+    .resume-header {
+        padding-bottom: 2rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .resume-name {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.1;
+        margin: 0 0 0.5rem;
+    }
+
+    .resume-role {
+        font-family: var(--font-mono, monospace);
+        color: #f48c25;
+        font-size: 1.05rem;
+        margin: 0 0 1.25rem;
+    }
+
+    .resume-contacts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.25rem;
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.5);
+    }
+
+    .resume-contact {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: inherit;
+        text-decoration: none;
+    }
+
+    a.resume-contact:hover {
+        color: #f48c25;
+    }
+
+    .resume-contact-icon {
+        font-size: 0.95rem !important;
+        flex-shrink: 0;
+    }
+
+    .resume-summary {
+        margin: 1.5rem 0 0;
+        font-size: 0.9rem;
+        line-height: 1.7;
+        color: rgba(255, 255, 255, 0.6);
+        max-width: 60ch;
+    }
+
+    .resume-section {
+        margin-bottom: 2.25rem;
+    }
+
+    .resume-section:last-of-type {
+        margin-bottom: 0;
+    }
+
+    .resume-section-title {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        color: #f48c25;
+        margin: 0 0 1.25rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid rgba(244, 140, 37, 0.2);
+    }
+
+    .resume-entries {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .resume-entry-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .resume-entry-role {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0;
+    }
+
+    .resume-entry-period {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: rgba(255, 255, 255, 0.45);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+    }
+
+    .resume-link {
+        color: #f48c25;
+        text-decoration: none;
+    }
+
+    .resume-entry-meta {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.65);
+        margin-top: 0.15rem;
+    }
+
+    .resume-entry-description {
+        font-size: 0.85rem;
+        line-height: 1.65;
+        color: rgba(255, 255, 255, 0.55);
+        margin: 0.5rem 0 0;
+    }
+
+    .resume-entry-tags {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.7rem;
+        color: rgba(244, 140, 37, 0.75);
+        margin: 0.5rem 0 0;
+    }
+
+    .resume-skills {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+        gap: 1.25rem;
+    }
+
+    .resume-skill-title {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: #fff;
+        margin: 0 0 0.35rem;
+    }
+
+    .resume-skill-list {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.75rem;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.55);
+        margin: 0;
+    }
+
+    .resume-footer {
+        margin-top: 2rem;
+        font-size: 0.7rem;
+        color: rgba(0, 0, 0, 0.4);
+        text-align: center;
+    }
+
+    .print-only {
+        display: none;
+    }
+
+    @media (max-width: 640px) {
+        .resume {
+            padding: 1.5rem;
+        }
+
+        .resume-name {
+            font-size: 1.75rem;
+        }
+    }
+
+    /* ── Impression : passage en noir sur blanc, une page si possible ── */
+    @media print {
+        @page {
+            margin: 14mm;
+        }
+
+        :global(.no-print) {
+            display: none !important;
+        }
+
+        :global(body) {
+            background: #fff !important;
+        }
+
+        .print-only {
+            display: block;
+        }
+
+        .resume {
+            background: #fff;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+            color: #1a1a1a;
+            font-size: 10.5pt;
+        }
+
+        .resume-name {
+            color: #000;
+            font-size: 22pt;
+        }
+
+        .resume-role {
+            color: #b35c00;
+            font-size: 11pt;
+        }
+
+        .resume-header {
+            border-bottom-color: rgba(0, 0, 0, 0.15);
+        }
+
+        .resume-contacts,
+        .resume-summary,
+        .resume-entry-description,
+        .resume-skill-list {
+            color: #333;
+        }
+
+        .resume-section-title {
+            color: #b35c00;
+            border-bottom-color: rgba(179, 92, 0, 0.35);
+        }
+
+        .resume-entry-role,
+        .resume-skill-title {
+            color: #000;
+        }
+
+        .resume-entry-meta {
+            color: #222;
+        }
+
+        .resume-entry-period {
+            color: #555;
+        }
+
+        .resume-entry-tags,
+        .resume-link {
+            color: #b35c00;
+        }
+
+        /* Ne jamais couper une entrée entre deux pages */
+        .resume-entry,
+        .resume-skill {
+            break-inside: avoid;
+        }
+
+        .resume-section {
+            break-inside: avoid-page;
+        }
+    }
+</style>
+
+<script>
+    document
+        .getElementById("print-button")
+        ?.addEventListener("click", () => window.print());
+</script>

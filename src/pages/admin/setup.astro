@@ -1,0 +1,89 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import { MIN_PASSWORD_LENGTH } from "../../lib/auth";
+
+export const prerender = false;
+
+const result = Astro.getActionResult(actions.account.setup);
+
+// La création réussie ouvre déjà la session : on entre directement dans l'admin.
+if (result && !result.error) {
+    return Astro.redirect("/admin", 303);
+}
+
+const error = result?.error?.message;
+---
+
+<AdminLayout title="Création du compte" bare>
+    <div class="w-full max-w-md">
+        <div class="text-center mb-8">
+            <span class="material-icons text-primary text-4xl mb-3">rocket_launch</span>
+            <h1 class="text-2xl font-bold text-white">Premier démarrage</h1>
+            <p class="text-gray-500 text-sm mt-1">
+                Crée le compte administrateur qui te permettra de gérer le site.
+            </p>
+        </div>
+
+        <div class="admin-card">
+            <Alert type="error" message={error} />
+
+            <form method="POST" action={actions.account.setup}>
+                <div class="admin-field">
+                    <label class="admin-label" for="username">Identifiant</label>
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        class="admin-input"
+                        autocomplete="username"
+                        pattern="[a-zA-Z0-9._\-]+"
+                        minlength="3"
+                        maxlength="60"
+                        required
+                        autofocus
+                    />
+                    <p class="admin-hint">
+                        Lettres, chiffres, point, tiret et souligné. 3 caractères minimum.
+                    </p>
+                </div>
+
+                <div class="admin-field">
+                    <label class="admin-label" for="password">Mot de passe</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        class="admin-input"
+                        autocomplete="new-password"
+                        minlength={MIN_PASSWORD_LENGTH}
+                        required
+                    />
+                    <p class="admin-hint">
+                        {MIN_PASSWORD_LENGTH} caractères minimum. Utilise un gestionnaire
+                        de mots de passe : ce compte donne accès à tout le contenu du site.
+                    </p>
+                </div>
+
+                <div class="admin-field">
+                    <label class="admin-label" for="confirm">Confirmation</label>
+                    <input
+                        id="confirm"
+                        name="confirm"
+                        type="password"
+                        class="admin-input"
+                        autocomplete="new-password"
+                        minlength={MIN_PASSWORD_LENGTH}
+                        required
+                    />
+                </div>
+
+                <button type="submit" class="admin-button admin-button--primary w-full">
+                    <span class="material-icons">check</span>
+                    Créer le compte
+                </button>
+            </form>
+        </div>
+    </div>
+</AdminLayout>

@@ -1,0 +1,106 @@
+---
+import { asI18n, asI18nList } from "../../lib/i18n";
+
+/**
+ * Champ traduisible : les versions française et anglaise côte à côte.
+ * Les inputs sont nommés `<name>_fr` et `<name>_en`, ce que les actions
+ * savent recomposer en JSON.
+ */
+interface Props {
+    name: string;
+    label: string;
+    /** Valeur brute lue en base (JSON i18n). */
+    value?: unknown;
+    hint?: string;
+    type?: "text" | "textarea" | "code" | "list";
+    rows?: number;
+    required?: boolean;
+    placeholder?: string;
+    /** Pour type="list" : séparateur attendu à la saisie. */
+    separator?: "comma" | "newline";
+}
+
+const {
+    name,
+    label,
+    value,
+    hint,
+    type = "text",
+    rows = 3,
+    required = false,
+    placeholder,
+    separator = "comma",
+} = Astro.props;
+
+const isList = type === "list";
+
+// Les listes sont éditées comme du texte : virgules ou lignes selon le champ.
+const values = isList
+    ? (() => {
+          const parsed = asI18nList(value);
+          const join = (items: string[] = []) =>
+              separator === "comma" ? items.join(", ") : items.join("\n");
+          return { fr: join(parsed.fr), en: join(parsed.en) };
+      })()
+    : asI18n(value);
+
+const LANGS = [
+    { code: "fr", label: "Français" },
+    { code: "en", label: "English" },
+] as const;
+
+const useTextarea = type === "textarea" || type === "code" || isList;
+const textareaRows = isList && separator === "comma" ? 2 : rows;
+---
+
+<div class="admin-field">
+    <span class="admin-label">
+        {label}
+        {required && <span class="text-primary"> *</span>}
+    </span>
+
+    <div class="admin-i18n">
+        {
+            LANGS.map((lang) => (
+                <div>
+                    <label
+                        class="admin-i18n-lang"
+                        for={`${name}_${lang.code}`}
+                    >
+                        {lang.label}
+                    </label>
+                    {useTextarea ? (
+                        // `set:text` plutôt qu'un enfant : le texte placé entre
+                        // les balises hériterait de l'indentation du gabarit,
+                        // qui apparaîtrait comme des espaces en tête de champ.
+                        <textarea
+                            id={`${name}_${lang.code}`}
+                            name={`${name}_${lang.code}`}
+                            rows={textareaRows}
+                            required={required && lang.code === "fr"}
+                            placeholder={placeholder}
+                            class:list={[
+                                "admin-textarea",
+                                type === "code" && "admin-textarea--code",
+                            ]}
+                            spellcheck={type === "code" ? "false" : undefined}
+                            set:text={values[lang.code] ?? ""}
+                        />
+                    ) : (
+                        <input
+                            id={`${name}_${lang.code}`}
+                            name={`${name}_${lang.code}`}
+                            type="text"
+                            value={values[lang.code] ?? ""}
+                            required={required && lang.code === "fr"}
+                            placeholder={placeholder}
+                            class="admin-input"
+                        />
+                    )}
+                </div>
+            ))
+        }
+    </div>
+
+    {hint && <p class="admin-hint">{hint}</p>}
+</div>

@@ -1,223 +1,92 @@
 ---
 import ExperienceCard from "./ExperienceCard.astro";
-import type { Lang } from "../config";
+import { getTimelineGroups } from "../lib/content";
+import type { Lang } from "../lib/i18n";
 
 interface Props {
-    lang?: string;
+    lang: Lang;
 }
 
-interface TimelineItem {
-    company: string;
-    role: string;
-    period: string;
-    location: string;
-    description: string;
-    tags: string[];
-    icon?: string;
-    current?: boolean;
-    badge?: string;
-    logo?: string;
-}
+const { lang } = Astro.props;
 
 /**
  * Un groupe = une section de la timeline (avec son propre titre).
  * `side` définit de quel côté des cards passe la ligne ("left" | "right").
- * Pour ajouter une section, il suffit d'ajouter un groupe ici : la ligne
- * lumineuse serpente automatiquement d'un côté à l'autre entre les groupes.
+ * L'ordre, le côté et le contenu viennent de la base : la ligne lumineuse
+ * serpente automatiquement d'un côté à l'autre entre les groupes.
  */
-interface TimelineGroup {
-    sectionLabel: string;
-    sectionTitle: string;
-    side: "left" | "right";
-    items: TimelineItem[];
-}
+const groups = getTimelineGroups(lang);
 
-const { lang = "fr" } = Astro.props;
-const currentLang = lang as Lang;
-
-const CONTENT: Record<Lang, TimelineGroup[]> = {
-    fr: [
-        {
-            sectionLabel: "Parcours Professionnel",
-            sectionTitle: "Expériences",
-            side: "left",
-            items: [
-                {
-                    company: "Thales Services Numériques",
-                    role: "Développeur Java Fullstack — Stage",
-                    period: "Mars 2026 — Présent",
-                    location: "Lyon, France",
-                    description:
-                        "Développement d'un middleware Java pour le domaine de la microbiologie, automatisation de l'expertise de certains automates. Utilisation de technologies modernes comme Spring Boot, Angular et H2.",
-                    tags: ["Java", "Spring Boot", "Angular", "H2", "Maven", "GitLab"],
-                    icon: "biotech",
-                    current: true,
-                    logo: "/logos/thales.png",
-                },
-                {
-                    company: "Loc'Nacelle",
-                    role: "Développeur Java Fullstack — Stage",
-                    period: "Juin 2023 — Août 2023",
-                    location: "Tossiat, France",
-                    description:
-                        "Développement d'une application web Java pour la gestion de la maintenance des nacelles. Utilisation de technologies modernes comme Spring Boot, Angular et PostgreSQL.",
-                    tags: ["Java", "Spring Boot", "Angular", "PostgreSQL", "Git"],
-                    icon: "forklift",
-                    current: false,
-                    logo: "/logos/locnacelle.png",
-                },
-            ],
-        },
-        {
-            sectionLabel: "Parcours Académique",
-            sectionTitle: "Formation",
-            side: "right",
-            items: [
-                {
-                    company: "EPITECH",
-                    role: "Diplôme d'expert en systèmes d'information",
-                    period: "2021 — 2026",
-                    location: "Lyon, France",
-                    description:
-                        "Formation d'expert en systèmes d'information par la pédagogie par projets, spécialisation applications lourdes.",
-                    tags: ["Systèmes", "C", "C++", "Java"],
-                    icon: "school",
-                    current: true,
-                    badge: "En cours",
-                    logo: "/logos/epitech.png",
-                },
-                {
-                    company: "École 42",
-                    role: "Concours d'entrée réussi",
-                    period: "2019 — 2020",
-                    location: "Paris, France",
-                    description:
-                        "Formation par projets, sélection des étudiants sur concours. Appelé « Piscine », le concours consiste en un mois intensif, 7j/7, à programmer des projets en C.",
-                    tags: ["Algorithmique", "C"],
-                    icon: "pool",
-                    current: false,
-                    logo: "/logos/42.png",
-                },
-            ],
-        },
-    ],
-    en: [
-        {
-            sectionLabel: "Professional Journey",
-            sectionTitle: "Experience",
-            side: "left",
-            items: [
-                {
-                    company: "Thales Services Numériques",
-                    role: "Software Engineer — Internship",
-                    period: "March 2026 — Present",
-                    location: "Lyon, France",
-                    description:
-                        "Development of a Java middleware for the field of microbiology, automation of the expertise of certain analyzers. Use of modern technologies such as Spring Boot, Angular and H2.",
-                    tags: ["Java", "Spring Boot", "Angular", "H2", "Maven", "GitLab"],
-                    icon: "biotech",
-                    current: true,
-                    badge: "Current",
-                    logo: "/logos/thales.png",
-                },
-                {
-                    company: "Loc'Nacelle",
-                    role: "Software Engineer — Internship",
-                    period: "June 2023 — Aug. 2023",
-                    location: "Tossiat, France",
-                    description:
-                        "Development of a Java web application for the management of nacelle maintenance. Use of modern technologies such as Spring Boot, Angular and PostgreSQL.",
-                    tags: ["Java", "Spring Boot", "Angular", "PostgreSQL", "Git"],
-                    icon: "forklift",
-                    current: false,
-                    logo: "/logos/locnacelle.png",
-                },
-            ],
-        },
-        {
-            sectionLabel: "Academic Journey",
-            sectionTitle: "Education",
-            side: "right",
-            items: [
-                {
-                    company: "EPITECH",
-                    role: "Information Systems Expert Degree — Master's level",
-                    period: "2021 — 2026",
-                    location: "Lyon, France",
-                    description:
-                        "Project-based curriculum leading to the Information Systems Expert degree, specializing in desktop applications.",
-                    tags: ["Systems", "C", "C++", "Java"],
-                    icon: "school",
-                    current: true,
-                    badge: "Ongoing",
-                    logo: "/logos/epitech.png",
-                },
-                {
-                    company: "École 42",
-                    role: "Entrance Exam Passed",
-                    period: "2019 — 2020",
-                    location: "Paris, France",
-                    description:
-                        "Project-based school selecting students through a competitive exam. Known as the \"Piscine\", it is an intensive month of programming C projects, 7 days a week.",
-                    tags: ["Algorithms", "C"],
-                    icon: "pool",
-                    current: false,
-                    logo: "/logos/42.png",
-                },
-            ],
-        },
-    ],
-};
-
-const groups = CONTENT[currentLang];
+const delayClass = (index: number) =>
+    ["", "reveal-delay-100", "reveal-delay-200", "reveal-delay-300"][
+        Math.min(index, 3)
+    ];
 ---
 
-<section class="py-24 bg-background-dark relative overflow-hidden" id="experience">
-    <div class="exp-grid-bg" aria-hidden="true"></div>
+{
+    groups.length > 0 && (
+        <section
+            class="py-24 bg-background-dark relative overflow-hidden"
+            id="experience"
+        >
+            <div class="exp-grid-bg" aria-hidden="true" />
 
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="journey" id="journey">
-            <svg class="journey-svg" id="journey-svg" aria-hidden="true">
-                <defs>
-                    <linearGradient
-                        id="journey-grad"
-                        gradientUnits="userSpaceOnUse"
-                        x1="0" y1="0" x2="0" y2="1"
-                    >
-                        <stop offset="0" stop-color="#f48c25"></stop>
-                        <stop offset="1" stop-color="rgba(244, 140, 37, 0.5)"></stop>
-                    </linearGradient>
-                    <filter id="journey-blur">
-                        <feGaussianBlur stdDeviation="3"></feGaussianBlur>
-                    </filter>
-                </defs>
-                <path class="journey-track" id="journey-track"></path>
-                <path class="journey-glow" id="journey-glow"></path>
-                <path class="journey-fill" id="journey-fill"></path>
-            </svg>
-            <div class="journey-tip" id="journey-tip" aria-hidden="true"></div>
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="journey" id="journey">
+                    <svg class="journey-svg" id="journey-svg" aria-hidden="true">
+                        <defs>
+                            <linearGradient
+                                id="journey-grad"
+                                gradientUnits="userSpaceOnUse"
+                                x1="0"
+                                y1="0"
+                                x2="0"
+                                y2="1"
+                            >
+                                <stop offset="0" stop-color="#f48c25" />
+                                <stop offset="1" stop-color="rgba(244, 140, 37, 0.5)" />
+                            </linearGradient>
+                            <filter id="journey-blur">
+                                <feGaussianBlur stdDeviation="3" />
+                            </filter>
+                        </defs>
+                        <path class="journey-track" id="journey-track" />
+                        <path class="journey-glow" id="journey-glow" />
+                        <path class="journey-fill" id="journey-fill" />
+                    </svg>
+                    <div class="journey-tip" id="journey-tip" aria-hidden="true" />
 
-            {groups.map((group) => (
-                <div class="journey-group" data-side={group.side}>
-                    <div class="text-center mb-16 reveal">
-                        <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
-                            {group.sectionLabel}
-                        </h2>
-                        <h3 class="text-3xl font-bold text-white">{group.sectionTitle}</h3>
-                    </div>
+                    {groups.map((group) => (
+                        <div class="journey-group" data-side={group.side}>
+                            {(group.eyebrow || group.heading) && (
+                                <div class="text-center mb-16 reveal">
+                                    {group.eyebrow && (
+                                        <h2 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
+                                            {group.eyebrow}
+                                        </h2>
+                                    )}
+                                    {group.heading && (
+                                        <h3 class="text-3xl font-bold text-white">
+                                            {group.heading}
+                                        </h3>
+                                    )}
+                                </div>
+                            )}
 
-                    <div class="journey-items">
-                        {group.items.map((item, index) => (
-                            <div class={`exp-item reveal reveal-delay-${(index + 1) * 100}`}>
-                                <ExperienceCard {...item} side={group.side} />
+                            <div class="journey-items">
+                                {group.items.map((item, index) => (
+                                    <div class:list={["exp-item reveal", delayClass(index)]}>
+                                        <ExperienceCard item={item} side={group.side} />
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        </div>
+                    ))}
                 </div>
-            ))}
-        </div>
-    </div>
-</section>
+            </div>
+        </section>
+    )
+}
 
 <style>
     /* ── Background grid ── */
@@ -323,6 +192,20 @@ const groups = CONTENT[currentLang];
     .exp-item:last-child {
         margin-bottom: 0;
     }
+
+    @media (max-width: 640px) {
+        .journey-group[data-side="left"] .journey-items {
+            padding-left: 1.125rem;
+        }
+
+        .journey-group[data-side="right"] .journey-items {
+            padding-right: 1.125rem;
+        }
+
+        .journey-group + .journey-group {
+            margin-top: 5rem;
+        }
+    }
 </style>
 
 <script>
@@ -345,7 +228,8 @@ const groups = CONTENT[currentLang];
             !(track instanceof SVGPathElement) ||
             !(fill instanceof SVGPathElement) ||
             !(glow instanceof SVGPathElement)
-        ) return;
+        )
+            return;
 
         // Alias non-null : le narrowing ci-dessus ne se propage pas dans
         // les fonctions imbriquées, ces const gardent le type affiné.
@@ -364,9 +248,9 @@ const groups = CONTENT[currentLang];
         const START = 0.2;
         const END = 0.7;
         const GLOW_FADE_START = 0.85; // le halo s'estompe en fin de course
-        const GLOW_LEN = 60;          // longueur de la traînée lumineuse (px)
-        const END_INSET = 22;         // arrêt de la ligne avant le bas du dernier groupe (px)
-        const CORNER_RADIUS = 12;     // arrondi des angles droits (px, 0 = angles vifs)
+        const GLOW_LEN = 60; // longueur de la traînée lumineuse (px)
+        const END_INSET = 22; // arrêt de la ligne avant le bas du dernier groupe (px)
+        const CORNER_RADIUS = 12; // arrondi des angles droits (px, 0 = angles vifs)
 
         let totalLength = 0;
         let lastProgress = -1;
@@ -393,7 +277,12 @@ const groups = CONTENT[currentLang];
             // du centre du premier dot jusqu'au bas du groupe.
             // groupTop (haut du titre) sert à placer la traversée horizontale
             // dans la bande vide entre deux groupes, sans passer sur le texte.
-            const segments: { x: number; yStart: number; yBottom: number; groupTop: number }[] = [];
+            const segments: {
+                x: number;
+                yStart: number;
+                yBottom: number;
+                groupTop: number;
+            }[] = [];
 
             journeyEl.querySelectorAll(".journey-group").forEach((groupRaw) => {
                 if (!(groupRaw instanceof HTMLElement)) return;
@@ -465,7 +354,10 @@ const groups = CONTENT[currentLang];
             const vh = window.innerHeight;
 
             const scrolled = (vh - top) / (height + vh);
-            const progress = Math.min(1, Math.max(0, (scrolled - START) / (END - START)));
+            const progress = Math.min(
+                1,
+                Math.max(0, (scrolled - START) / (END - START)),
+            );
 
             if (Math.abs(progress - lastProgress) < 0.001) return;
             lastProgress = progress;
@@ -488,10 +380,14 @@ const groups = CONTENT[currentLang];
         }
 
         let scrollRaf = 0;
-        window.addEventListener("scroll", () => {
-            cancelAnimationFrame(scrollRaf);
-            scrollRaf = requestAnimationFrame(updateLine);
-        }, { passive: true });
+        window.addEventListener(
+            "scroll",
+            () => {
+                cancelAnimationFrame(scrollRaf);
+                scrollRaf = requestAnimationFrame(updateLine);
+            },
+            { passive: true },
+        );
 
         let buildRaf = 0;
         function scheduleBuild() {

@@ -17,6 +17,10 @@ pnpm-debug.log*
 .env
 .env.production
 
+# données locales : base SQLite et fichiers uploadés
+# (en production, c'est le volume Docker qui les porte)
+data/
+
 # macOS-specific files
 .DS_Store
 

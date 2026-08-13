@@ -1,43 +1,186 @@
 ---
-import { SITE_CONFIG, type Lang } from "../config";
+import { getSections, getSettings } from "../lib/content";
+import { switchLangPath, type Lang } from "../lib/i18n";
 
-const { lang = "fr" } = Astro.props;
-const currentLang = lang as Lang;
-const t = SITE_CONFIG[currentLang].nav;
+interface Props {
+    lang: Lang;
+}
 
-const otherLang = currentLang === "fr" ? "en" : "fr";
-const otherLangLabel = currentLang === "fr" ? "EN" : "FR";
+const { lang } = Astro.props;
 
-const base = import.meta.env.BASE_URL;
-const getPath = (path: string) => (base + "/" + path).replace(/\/+/g, "/");
+const settings = getSettings(lang);
+const sections = getSections(lang).filter((s) => s.inNav && s.navLabel);
+
+// La dernière section « contact » devient le bouton d'appel à l'action,
+// les autres sont des liens simples.
+const ctaSection = sections.find((s) => s.key === "contact");
+const linkSections = sections.filter((s) => s !== ctaSection);
+
+const home = `/${lang}`;
+const pathname = Astro.url.pathname.replace(/\/+$/, "") || "/";
+
+// Sur l'accueil, on garde des ancres pures pour que le défilement soit
+// fluide ; ailleurs, il faut un lien absolu qui ramène à la page d'accueil.
+const isHome = pathname === home;
+const anchor = (key: string) => (isHome ? `#${key}` : `${home}#${key}`);
+
+const otherLang: Lang = lang === "fr" ? "en" : "fr";
+const otherLangHref = switchLangPath(Astro.url.pathname, otherLang);
+
+const projectsHref = `/${lang}/projects`;
+const resumeHref = `/${lang}/resume`;
+
+const labels = {
+    fr: { menu: "Menu", close: "Fermer le menu", open: "Ouvrir le menu", resume: "CV" },
+    en: { menu: "Menu", close: "Close menu", open: "Open menu", resume: "Resume" },
+}[lang];
 ---
 
-<nav class="fixed top-0 w-full z-50 glass-panel">
+<nav class="fixed top-0 w-full z-50 glass-panel" id="navbar">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
             <div class="flex-shrink-0">
                 <a
-                    class="font-mono text-xl font-bold text-white tracking-tighter flex items-center gap-2"
-                    href={getPath("/")}
+                    class="font-mono text-lg sm:text-xl font-bold text-white tracking-tighter flex items-center gap-1"
+                    href={home}
                 >
-                    <span class="text-primary">&lt;</span>{SITE_CONFIG.name.replace(" ", "_")}<span class="text-primary"> /&gt;</span>
+                    <span class="text-primary">&lt;</span>{
+                        settings.name.replace(/\s+/g, "_")
+                    }<span class="text-primary">&nbsp;/&gt;</span>
                 </a>
             </div>
+
+            <!-- Navigation bureau -->
             <div class="hidden md:block">
                 <div class="ml-10 flex items-baseline space-x-8">
-                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={getPath(`${lang}/#about`)}>{t.about}</a>
-                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={getPath(`${lang}/#expertise`)}>{t.expertise}</a>
-                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={getPath(`${lang}/#experience`)}>{t.experience}</a>
-                    <a class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200" href={getPath(`${lang}/#projects`)}>{t.projects}</a>
-                    <a class="px-4 py-2 rounded text-sm font-medium bg-transparent text-primary border border-primary hover:bg-primary hover:text-white transition-all duration-200" href={getPath(`${lang}/#contact`)}>{t.contact}</a>
+                    {
+                        linkSections.map((section) => (
+                            <a
+                                class="text-sm font-medium text-gray-300 hover:text-white transition-colors duration-200"
+                                href={anchor(section.key)}
+                            >
+                                {section.navLabel}
+                            </a>
+                        ))
+                    }
+                    {
+                        ctaSection && (
+                            <a
+                                class="px-4 py-2 rounded text-sm font-medium bg-transparent text-primary border border-primary hover:bg-primary hover:text-white transition-all duration-200"
+                                href={anchor(ctaSection.key)}
+                            >
+                                {ctaSection.navLabel}
+                            </a>
+                        )
+                    }
                     <a
                         class="text-sm font-bold text-gray-300 hover:text-white transition-colors duration-200 ml-4 border-l pl-4 border-gray-700"
-                        href={getPath(otherLang)}
+                        href={otherLangHref}
+                        hreflang={otherLang}
+                        aria-label={otherLang === "fr" ? "Passer en français" : "Switch to English"}
                     >
-                        {otherLangLabel}
+                        {otherLang.toUpperCase()}
                     </a>
                 </div>
+            </div>
+
+            <!-- Bouton menu mobile -->
+            <button
+                type="button"
+                id="nav-toggle"
+                class="md:hidden inline-flex items-center justify-center w-11 h-11 rounded border border-neutral-800 text-gray-300 hover:text-white hover:border-primary/50 transition-colors"
+                aria-controls="mobile-menu"
+                aria-expanded="false"
+                aria-label={labels.open}
+            >
+                <span class="material-icons" id="nav-toggle-icon">menu</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Menu mobile -->
+    <div
+        id="mobile-menu"
+        class="md:hidden hidden border-t border-neutral-900 bg-background-dark/95 backdrop-blur"
+    >
+        <div class="px-4 py-4 space-y-1">
+            {
+                sections.map((section) => (
+                    <a
+                        class="block px-3 py-3 rounded text-base font-medium text-gray-300 hover:text-white hover:bg-surface-dark transition-colors"
+                        href={anchor(section.key)}
+                        data-mobile-link
+                    >
+                        {section.navLabel}
+                    </a>
+                ))
+            }
+
+            <div class="pt-3 mt-3 border-t border-neutral-900 flex items-center gap-3">
+                <a
+                    class="flex-1 text-center px-3 py-3 rounded text-sm font-medium border border-neutral-800 text-gray-300 hover:border-primary/50 hover:text-white transition-colors"
+                    href={projectsHref}
+                    data-mobile-link
+                >
+                    {lang === "fr" ? "Tous les projets" : "All projects"}
+                </a>
+                {
+                    settings.resumeEnabled && (
+                        <a
+                            class="flex-1 text-center px-3 py-3 rounded text-sm font-medium border border-neutral-800 text-gray-300 hover:border-primary/50 hover:text-white transition-colors"
+                            href={resumeHref}
+                            data-mobile-link
+                        >
+                            {labels.resume}
+                        </a>
+                    )
+                }
+                <a
+                    class="px-4 py-3 rounded text-sm font-bold border border-neutral-800 text-gray-300 hover:border-primary/50 hover:text-white transition-colors"
+                    href={otherLangHref}
+                    hreflang={otherLang}
+                >
+                    {otherLang.toUpperCase()}
+                </a>
             </div>
         </div>
     </div>
 </nav>
+
+<script is:inline define:vars={{ openLabel: labels.open, closeLabel: labels.close }}>
+    (function () {
+        const toggle = document.getElementById("nav-toggle");
+        const icon = document.getElementById("nav-toggle-icon");
+        const menu = document.getElementById("mobile-menu");
+        if (!toggle || !menu || !icon) return;
+
+        const setOpen = (open) => {
+            menu.classList.toggle("hidden", !open);
+            toggle.setAttribute("aria-expanded", String(open));
+            toggle.setAttribute("aria-label", open ? closeLabel : openLabel);
+            icon.textContent = open ? "close" : "menu";
+        };
+
+        toggle.addEventListener("click", () => {
+            setOpen(menu.classList.contains("hidden"));
+        });
+
+        // Refermer après un clic sur un lien : sur une ancre, la page ne
+        // se recharge pas, le menu resterait ouvert par-dessus le contenu.
+        menu.querySelectorAll("[data-mobile-link]").forEach((link) => {
+            link.addEventListener("click", () => setOpen(false));
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !menu.classList.contains("hidden")) {
+                setOpen(false);
+                toggle.focus();
+            }
+        });
+
+        // Le menu mobile ne doit pas rester ouvert si l'écran s'élargit.
+        window.matchMedia("(min-width: 768px)").addEventListener("change", (e) => {
+            if (e.matches) setOpen(false);
+        });
+    })();
+</script>

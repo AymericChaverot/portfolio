@@ -1,139 +1,139 @@
 ---
-import { SITE_CONFIG, type Lang } from "../config";
-
-interface TerminalLine {
-    line: number;
-    html: string;
-}
-
-interface HeroContent {
-    viewWork: string;
-    contactMe: string;
-    terminalLines: TerminalLine[];
-}
+import { getSettings } from "../lib/content";
+import { highlightCode } from "../lib/highlight";
+import type { Lang } from "../lib/i18n";
 
 interface Props {
-    lang?: string;
+    lang: Lang;
 }
 
-const { lang = "fr" } = Astro.props;
-const currentLang = lang as Lang;
+const { lang } = Astro.props;
 
-const CONTENT: Record<Lang, HeroContent> = {
-    en: {
-        viewWork: "View Work",
-        contactMe: "Contact Me",
-        terminalLines: [
-            { line: 1,  html: '<span><span class="text-primary">struct</span> <span class="text-yellow-200">Engineer</span> <span class="text-white">{</span></span>' },
-            { line: 2,  html: '<span class="pl-4">name: String,</span>' },
-            { line: 3,  html: '<span class="pl-4">skills: Vec&lt;Skill&gt;,</span>' },
-            { line: 4,  html: '<span class="pl-4">location: String,</span>' },
-            { line: 5,  html: '<span class="text-white">}</span>' },
-            { line: 6,  html: "<span></span>" },
-            { line: 7,  html: '<span><span class="text-primary">impl</span> <span class="text-yellow-200">Engineer</span> <span class="text-white">{</span></span>' },
-            { line: 8,  html: '<span class="pl-4"><span class="text-primary">fn</span> <span class="text-blue-300">new</span>() -&gt; <span class="text-primary">Self</span> <span class="text-white">{</span></span>' },
-            { line: 9,  html: '<span class="pl-8"><span class="text-yellow-200">Engineer</span> <span class="text-white">{</span></span>' },
-            { line: 10, html: `<span class="pl-12">name: <span class="text-green-400">"${SITE_CONFIG.name}"</span>.to_string(),</span>` },
-            { line: 11, html: '<span class="pl-12">skills: vec![<span class="text-green-400">"Architecture"</span>, <span class="text-green-400">"Performance"</span>, <span class="text-green-400">"System"</span>],</span>' },
-            { line: 12, html: '<span class="pl-12">location: <span class="text-green-400">"Lyon, France"</span>.to_string(),</span>' },
-            { line: 13, html: '<span class="pl-8"><span class="text-white">}</span></span>' },
-            { line: 14, html: '<span class="pl-4"><span class="text-white">}</span></span>' },
-            { line: 15, html: '<span class="text-white">}</span>' },
-        ],
-    },
-    fr: {
-        viewWork: "Voir mes projets",
-        contactMe: "Me contacter",
-        terminalLines: [
-            { line: 1,  html: '<span><span class="text-primary">struct</span> <span class="text-yellow-200">Ingenieur</span> <span class="text-white">{</span></span>' },
-            { line: 2,  html: '<span class="pl-4">nom: String,</span>' },
-            { line: 3,  html: '<span class="pl-4">competences: Vec&lt;Skill&gt;,</span>' },
-            { line: 4,  html: '<span class="pl-4">localisation: String,</span>' },
-            { line: 5,  html: '<span class="text-white">}</span>' },
-            { line: 6,  html: "<span></span>" },
-            { line: 7,  html: '<span><span class="text-primary">impl</span> <span class="text-yellow-200">Ingenieur</span> <span class="text-white">{</span></span>' },
-            { line: 8,  html: '<span class="pl-4"><span class="text-primary">fn</span> <span class="text-blue-300">nouveau</span>() -&gt; <span class="text-primary">Self</span> <span class="text-white">{</span></span>' },
-            { line: 9,  html: '<span class="pl-8"><span class="text-yellow-200">Ingenieur</span> <span class="text-white">{</span></span>' },
-            { line: 10, html: `<span class="pl-12">nom: <span class="text-green-400">"${SITE_CONFIG.name}"</span>.to_string(),</span>` },
-            { line: 11, html: '<span class="pl-12">skills: vec![<span class="text-green-400">"Architecture"</span>, <span class="text-green-400">"Performance"</span>, <span class="text-green-400">"System"</span>],</span>' },
-            { line: 12, html: '<span class="pl-12">localisation: <span class="text-green-400">"Lyon, France"</span>.to_string(),</span>' },
-            { line: 13, html: '<span class="pl-8"><span class="text-white">}</span></span>' },
-            { line: 14, html: '<span class="pl-4"><span class="text-white">}</span></span>' },
-            { line: 15, html: '<span class="text-white">}</span>' },
-        ],
-    },
-};
+const settings = getSettings(lang);
 
-const t = CONTENT[currentLang];
-const config = SITE_CONFIG[currentLang];
+// Le code du terminal est saisi en clair dans l'admin puis coloré ici :
+// aucun HTML n'est stocké en base.
+const lines = highlightCode(settings.heroTerminalCode);
+
+const projectsAnchor = "#projects";
+const contactAnchor = "#contact";
 ---
 
-<header class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-background-dark" id="about">
+<header
+    class="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-background-dark"
+    id="hero"
+>
     <!-- Background effects -->
     <div class="absolute inset-0 z-0 opacity-40 pointer-events-none">
-        <div class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent"></div>
+        <div
+            class="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent"
+        >
+        </div>
         <div
             class="w-full h-full"
             style="background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px); background-size: 30px 30px;"
-        ></div>
+        >
+        </div>
     </div>
 
-    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center">
+    <div
+        class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row items-center"
+    >
         <div class="lg:w-1/2 text-left reveal">
-            <div class="inline-flex items-center px-3 py-1 rounded border border-neutral-800 bg-surface-dark text-gray-400 text-xs font-mono mb-6">
-                <span class={`w-2 h-2 rounded-full mr-2 animate-pulse ${config.status.available ? "bg-green-500" : "bg-red-500"}`} />
-                {config.status.text}
-            </div>
-            <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-4 reveal reveal-delay-100">
-                {SITE_CONFIG.name}
+            {
+                settings.statusText && (
+                    <div class="inline-flex items-center px-3 py-1 rounded border border-neutral-800 bg-surface-dark text-gray-400 text-xs font-mono mb-6">
+                        <span
+                            class:list={[
+                                "w-2 h-2 rounded-full mr-2 animate-pulse",
+                                settings.statusAvailable ? "bg-green-500" : "bg-red-500",
+                            ]}
+                        />
+                        {settings.statusText}
+                    </div>
+                )
+            }
+
+            <h1
+                class="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white mb-4 reveal reveal-delay-100"
+            >
+                {settings.name}
             </h1>
-            <h2 class="font-mono text-2xl md:text-3xl text-primary font-light mb-6 reveal reveal-delay-200">
-                {config.role}
-            </h2>
-            <p class="text-lg text-gray-400 mb-8 max-w-lg leading-relaxed reveal reveal-delay-300">
-                {config.description}
-            </p>
+
+            {
+                settings.role && (
+                    <h2 class="font-mono text-2xl md:text-3xl text-primary font-light mb-6 reveal reveal-delay-200">
+                        {settings.role}
+                    </h2>
+                )
+            }
+
+            {
+                settings.description && (
+                    <p class="text-lg text-gray-400 mb-8 max-w-lg leading-relaxed reveal reveal-delay-300">
+                        {settings.description}
+                    </p>
+                )
+            }
+
             <div class="flex flex-col sm:flex-row gap-4 reveal reveal-delay-300">
-                <a
-                    class="inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
-                    href="#projects"
-                >
-                    {t.viewWork}
-                </a>
-                <a
-                    class="inline-flex justify-center items-center px-8 py-3 border border-neutral-700 text-base font-medium rounded text-gray-300 hover:border-primary hover:text-primary transition-all bg-surface-dark"
-                    href="#contact"
-                >
-                    {t.contactMe}
-                </a>
+                {
+                    settings.heroCtaPrimary && (
+                        <a
+                            class="inline-flex justify-center items-center px-8 py-3 border border-transparent text-base font-medium rounded bg-primary text-white hover:bg-primary/90 transition-all shadow-lg shadow-primary/20"
+                            href={projectsAnchor}
+                        >
+                            {settings.heroCtaPrimary}
+                        </a>
+                    )
+                }
+                {
+                    settings.heroCtaSecondary && (
+                        <a
+                            class="inline-flex justify-center items-center px-8 py-3 border border-neutral-700 text-base font-medium rounded text-gray-300 hover:border-primary hover:text-primary transition-all bg-surface-dark"
+                            href={contactAnchor}
+                        >
+                            {settings.heroCtaSecondary}
+                        </a>
+                    )
+                }
             </div>
         </div>
 
-        <div class="lg:w-1/2 mt-12 lg:mt-0 lg:pl-12 w-full reveal reveal-delay-200">
-            <div class="relative rounded-lg bg-black border border-neutral-800 shadow-2xl overflow-hidden font-mono text-sm leading-relaxed">
-                <!-- Terminal title bar -->
-                <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-surface-dark">
-                    <div class="flex space-x-2">
-                        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
-                    </div>
-                    <div class="text-xs text-gray-500">profile.rs — neovim</div>
-                    <div class="w-8"></div>
-                </div>
-                <!-- Terminal body -->
-                <div class="p-6 text-gray-300 overflow-x-auto bg-black/50">
-                    {t.terminalLines.map((l) => (
-                        <div class="flex">
-                            <span class="text-gray-700 select-none mr-4 text-right w-6">{l.line}</span>
-                            <Fragment set:html={l.html} />
+        {
+            lines.length > 0 && (
+                <div class="lg:w-1/2 mt-12 lg:mt-0 lg:pl-12 w-full reveal reveal-delay-200">
+                    <div class="relative rounded-lg bg-black border border-neutral-800 shadow-2xl overflow-hidden font-mono text-sm leading-relaxed">
+                        <div class="flex items-center justify-between px-4 py-3 border-b border-neutral-800 bg-surface-dark">
+                            <div class="flex space-x-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500/80" />
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/80" />
+                                <div class="w-3 h-3 rounded-full bg-green-500/80" />
+                            </div>
+                            <div class="text-xs text-gray-500 truncate px-2">
+                                {settings.heroTerminalTitle}
+                            </div>
+                            <div class="w-8" />
                         </div>
-                    ))}
-                    <div class="flex mt-2">
-                        <span class="text-primary animate-blink">█</span>
+
+                        <div class="p-4 sm:p-6 text-gray-300 overflow-x-auto bg-black/50">
+                            {lines.map((line) => (
+                                <div class="flex">
+                                    <span class="text-gray-700 select-none mr-4 text-right w-6 shrink-0">
+                                        {line.number}
+                                    </span>
+                                    <span class="whitespace-pre">
+                                        <Fragment set:html={line.html} />
+                                    </span>
+                                </div>
+                            ))}
+                            <div class="flex mt-2">
+                                <span class="text-primary animate-blink">█</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
+            )
+        }
     </div>
 </header>

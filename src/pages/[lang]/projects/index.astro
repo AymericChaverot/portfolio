@@ -1,0 +1,218 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import Navbar from "../../../components/Navbar.astro";
+import ProjectCard from "../../../components/ProjectCard.astro";
+import Footer from "../../../components/Footer.astro";
+import { getProjects, getProjectTags, getSection } from "../../../lib/content";
+import { isLang, type Lang } from "../../../lib/i18n";
+
+export const prerender = false;
+
+const { lang: rawLang } = Astro.params;
+if (!isLang(rawLang)) {
+    return Astro.rewrite("/404");
+}
+
+const lang = rawLang as Lang;
+
+const projects = getProjects(lang);
+const tags = getProjectTags(lang);
+const section = getSection(lang, "projects");
+
+const t = {
+    fr: {
+        title: "Tous les projets",
+        eyebrow: "Archive",
+        intro:
+            "L'ensemble des projets, des expérimentations personnelles aux systèmes en production.",
+        back: "Retour à l'accueil",
+        all: "Tous",
+        count: (n: number) => `${n} projet${n > 1 ? "s" : ""}`,
+        empty: "Aucun projet publié pour le moment.",
+        noMatch: "Aucun projet ne correspond à ce filtre.",
+        filterLabel: "Filtrer par technologie",
+    },
+    en: {
+        title: "All projects",
+        eyebrow: "Archive",
+        intro:
+            "Every project, from personal experiments to systems running in production.",
+        back: "Back to home",
+        all: "All",
+        count: (n: number) => `${n} project${n > 1 ? "s" : ""}`,
+        empty: "No projects published yet.",
+        noMatch: "No project matches this filter.",
+        filterLabel: "Filter by technology",
+    },
+}[lang];
+
+const heading = section?.heading || t.title;
+---
+
+<Layout lang={lang} title={t.title} description={section?.subheading || t.intro}>
+    <Navbar lang={lang} />
+
+    <main id="main-content" class="pt-32 pb-20 bg-background-dark min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <a
+                href={`/${lang}`}
+                class="inline-flex items-center text-primary hover:text-white transition-colors mb-10 font-mono text-sm"
+            >
+                <span class="material-icons text-sm mr-2">arrow_back</span>
+                {t.back}
+            </a>
+
+            <header class="mb-12 reveal">
+                <h1 class="text-base text-primary font-mono tracking-wide uppercase mb-2">
+                    {t.eyebrow}
+                </h1>
+                <p class="text-4xl font-bold text-white mb-4">{heading}</p>
+                <p class="text-gray-400 max-w-2xl">
+                    {section?.subheading || t.intro}
+                </p>
+                <p class="text-gray-600 font-mono text-sm mt-4" id="project-count">
+                    {t.count(projects.length)}
+                </p>
+            </header>
+
+            {
+                tags.length > 1 && (
+                    <div class="mb-10 reveal reveal-delay-100">
+                        <h2 class="sr-only">{t.filterLabel}</h2>
+                        <div class="flex flex-wrap gap-2" id="tag-filters" role="group">
+                            <button
+                                type="button"
+                                class="filter-chip filter-chip--active"
+                                data-tag=""
+                                aria-pressed="true"
+                            >
+                                {t.all}
+                            </button>
+                            {tags.map((tag) => (
+                                <button
+                                    type="button"
+                                    class="filter-chip"
+                                    data-tag={tag}
+                                    aria-pressed="false"
+                                >
+                                    {tag}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )
+            }
+
+            {
+                projects.length === 0 ? (
+                    <p class="text-gray-500 font-mono text-sm py-20 text-center">
+                        {t.empty}
+                    </p>
+                ) : (
+                    <>
+                        <div
+                            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                            id="project-grid"
+                        >
+                            {projects.map((project) => (
+                                <div
+                                    class="reveal project-item"
+                                    data-tags={JSON.stringify(project.tags)}
+                                >
+                                    <ProjectCard project={project} lang={lang} />
+                                </div>
+                            ))}
+                        </div>
+
+                        <p
+                            class="text-gray-500 font-mono text-sm py-20 text-center hidden"
+                            id="no-match"
+                        >
+                            {t.noMatch}
+                        </p>
+                    </>
+                )
+            }
+
+            <Footer lang={lang} />
+        </div>
+    </main>
+</Layout>
+
+<style>
+    .filter-chip {
+        font-family: var(--font-mono, monospace);
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.6);
+        background: rgba(10, 10, 10, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.4rem 0.8rem;
+        border-radius: 9999px;
+        cursor: pointer;
+        transition:
+            border-color 0.2s ease,
+            color 0.2s ease,
+            background 0.2s ease;
+    }
+
+    .filter-chip:hover {
+        color: #fff;
+        border-color: rgba(244, 140, 37, 0.4);
+    }
+
+    .filter-chip--active {
+        color: #f48c25;
+        border-color: rgba(244, 140, 37, 0.6);
+        background: rgba(244, 140, 37, 0.08);
+    }
+
+    .project-item.is-hidden {
+        display: none;
+    }
+</style>
+
+<script is:inline define:vars={{ countTemplate: t.count(0) }}>
+    (function () {
+        const filters = document.getElementById("tag-filters");
+        const grid = document.getElementById("project-grid");
+        const noMatch = document.getElementById("no-match");
+        const counter = document.getElementById("project-count");
+        if (!filters || !grid) return;
+
+        const items = Array.from(grid.querySelectorAll(".project-item"));
+
+        // Le libellé du compteur est traduit côté serveur : on en déduit le
+        // gabarit en remplaçant le nombre, plutôt que de dupliquer les
+        // chaînes de traduction dans ce script.
+        const formatCount = (n) => countTemplate.replace(/\d+/, String(n));
+
+        filters.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-tag]");
+            if (!button) return;
+
+            const tag = button.dataset.tag;
+
+            filters.querySelectorAll("[data-tag]").forEach((chip) => {
+                const active = chip === button;
+                chip.classList.toggle("filter-chip--active", active);
+                chip.setAttribute("aria-pressed", String(active));
+            });
+
+            let visible = 0;
+            items.forEach((item) => {
+                let tags = [];
+                try {
+                    tags = JSON.parse(item.dataset.tags || "[]");
+                } catch {
+                    tags = [];
+                }
+                const show = !tag || tags.includes(tag);
+                item.classList.toggle("is-hidden", !show);
+                if (show) visible++;
+            });
+
+            if (noMatch) noMatch.classList.toggle("hidden", visible > 0);
+            if (counter) counter.textContent = formatCount(visible);
+        });
+    })();
+</script>

@@ -1,0 +1,196 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import I18nField from "../../components/admin/I18nField.astro";
+import { countMediaUsage, listMedia, MAX_UPLOAD_BYTES } from "../../lib/media";
+
+export const prerender = false;
+
+const uploadResult = Astro.getActionResult(actions.media.upload);
+const altResult = Astro.getActionResult(actions.media.updateAlt);
+const deleteResult = Astro.getActionResult(actions.media.remove);
+
+if ([uploadResult, altResult, deleteResult].some((r) => r && !r.error)) {
+    return Astro.redirect("/admin/media?saved=1", 303);
+}
+
+const media = listMedia().map((item) => ({
+    ...item,
+    usage: countMediaUsage(item.id),
+}));
+
+const editing = Astro.url.searchParams.get("edit");
+const editingMedia = media.find((m) => String(m.id) === editing);
+
+const saved = Astro.url.searchParams.has("saved");
+const error =
+    uploadResult?.error?.message ||
+    altResult?.error?.message ||
+    deleteResult?.error?.message;
+
+const formatSize = (bytes: number) =>
+    bytes < 1024 * 1024
+        ? `${Math.round(bytes / 1024)} Ko`
+        : `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+
+const maxMb = MAX_UPLOAD_BYTES / 1024 / 1024;
+---
+
+<AdminLayout title="Médias">
+    <Alert type="success" message={saved ? "Médiathèque mise à jour." : null} />
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Envoyer un fichier</h2>
+        <p class="admin-card-hint">
+            Images (PNG, JPEG, WebP, AVIF, GIF, SVG) et PDF, jusqu'à {maxMb} Mo.
+            Les images de plus de 2000 px de large sont réduites automatiquement.
+        </p>
+
+        <form method="POST" action={actions.media.upload} enctype="multipart/form-data">
+            <div class="admin-field">
+                <label class="admin-label" for="file">Fichier</label>
+                <input
+                    id="file"
+                    name="file"
+                    type="file"
+                    class="admin-input"
+                    accept="image/png,image/jpeg,image/webp,image/avif,image/gif,image/svg+xml,application/pdf"
+                    required
+                />
+            </div>
+
+            <button type="submit" class="admin-button admin-button--primary">
+                <span class="material-icons">upload</span>
+                Envoyer
+            </button>
+        </form>
+    </div>
+
+    {
+        editingMedia && (
+            <div class="admin-card">
+                <h2 class="admin-card-title">
+                    Texte alternatif · {editingMedia.original_name}
+                </h2>
+                <p class="admin-card-hint">
+                    Décrit l'image pour les lecteurs d'écran et les moteurs de
+                    recherche. Laisse vide pour une image purement décorative
+                    (les logos en filigrane, par exemple).
+                </p>
+
+                <form method="POST" action={actions.media.updateAlt}>
+                    <input type="hidden" name="id" value={editingMedia.id} />
+                    <I18nField name="alt" label="Description" value={editingMedia.alt} />
+
+                    <div class="admin-actions">
+                        <button type="submit" class="admin-button admin-button--primary">
+                            <span class="material-icons">save</span>
+                            Enregistrer
+                        </button>
+                        <a href="/admin/media" class="admin-button admin-button--ghost">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+
+    <div class="admin-card">
+        <h2 class="admin-card-title">Médiathèque ({media.length})</h2>
+        <p class="admin-card-hint">
+            Supprimer un fichier utilisé retire l'image des éléments concernés,
+            sans les supprimer eux-mêmes.
+        </p>
+
+        {
+            media.length === 0 ? (
+                <div class="admin-empty">Aucun fichier pour l'instant.</div>
+            ) : (
+                <div class="admin-media-grid">
+                    {media.map((item) => (
+                        <div class="admin-media-tile">
+                            {item.mime === "application/pdf" ? (
+                                <div class="admin-media-preview flex items-center justify-center">
+                                    <span class="material-icons text-neutral-600 text-4xl">
+                                        picture_as_pdf
+                                    </span>
+                                </div>
+                            ) : (
+                                <img
+                                    src={`/media/${item.filename}`}
+                                    alt={item.original_name}
+                                    class="admin-media-preview"
+                                    loading="lazy"
+                                />
+                            )}
+
+                            <div class="admin-media-info">
+                                <div class="admin-media-name" title={item.original_name}>
+                                    {item.original_name}
+                                </div>
+                                <div>
+                                    {item.width ? `${item.width}×${item.height} · ` : ""}
+                                    {formatSize(item.size)}
+                                </div>
+                                <div class="mt-1">
+                                    {item.usage > 0 ? (
+                                        <span class="admin-badge admin-badge--on">
+                                            Utilisé ×{item.usage}
+                                        </span>
+                                    ) : (
+                                        <span class="admin-badge admin-badge--off">
+                                            Inutilisé
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div class="flex gap-1 mt-2">
+                                    <a
+                                        href={`/admin/media?edit=${item.id}`}
+                                        class="admin-icon-button"
+                                        title="Texte alternatif"
+                                        aria-label="Modifier le texte alternatif"
+                                    >
+                                        <span class="material-icons">edit</span>
+                                    </a>
+                                    <a
+                                        href={`/media/${item.filename}`}
+                                        target="_blank"
+                                        class="admin-icon-button"
+                                        title="Ouvrir"
+                                        aria-label="Ouvrir le fichier"
+                                    >
+                                        <span class="material-icons">open_in_new</span>
+                                    </a>
+                                    <form
+                                        method="POST"
+                                        action={actions.media.remove}
+                                        data-confirm={
+                                            item.usage > 0
+                                                ? `« ${item.original_name} » est utilisé par ${item.usage} élément(s). Le supprimer les laissera sans image. Continuer ?`
+                                                : `Supprimer « ${item.original_name} » ?`
+                                        }
+                                    >
+                                        <input type="hidden" name="id" value={item.id} />
+                                        <input type="hidden" name="force" value="true" />
+                                        <button
+                                            type="submit"
+                                            class="admin-icon-button"
+                                            title="Supprimer"
+                                            aria-label="Supprimer le fichier"
+                                        >
+                                            <span class="material-icons">delete_outline</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )
+        }
+    </div>
+</AdminLayout>

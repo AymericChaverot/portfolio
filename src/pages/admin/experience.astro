@@ -1,0 +1,382 @@
+---
+import { actions } from "astro:actions";
+import AdminLayout from "../../layouts/AdminLayout.astro";
+import Alert from "../../components/admin/Alert.astro";
+import Field from "../../components/admin/Field.astro";
+import I18nField from "../../components/admin/I18nField.astro";
+import MediaPicker from "../../components/admin/MediaPicker.astro";
+import RowActions from "../../components/admin/RowActions.astro";
+import Toggle from "../../components/admin/Toggle.astro";
+import { all } from "../../lib/db";
+import { pick, pickList } from "../../lib/i18n";
+
+export const prerender = false;
+
+const groupResult = Astro.getActionResult(actions.timelineGroup);
+const itemResult = Astro.getActionResult(actions.timelineItem);
+const moveResult = Astro.getActionResult(actions.list.move);
+const visResult = Astro.getActionResult(actions.list.toggleVisibility);
+const delResult = Astro.getActionResult(actions.list.remove);
+
+if (
+    [groupResult, itemResult, moveResult, visResult, delResult].some(
+        (r) => r && !r.error,
+    )
+) {
+    return Astro.redirect("/admin/experience?saved=1", 303);
+}
+
+const groups = all<Record<string, any>>(
+    `SELECT * FROM timeline_groups ORDER BY position ASC, id ASC`,
+);
+const items = all<Record<string, any>>(
+    `SELECT t.*, m.filename AS logo_filename
+     FROM timeline_items t
+     LEFT JOIN media m ON m.id = t.logo_id
+     ORDER BY t.position ASC, t.id ASC`,
+);
+
+const params = Astro.url.searchParams;
+
+// Un seul formulaire est ouvert à la fois, piloté par la query string.
+const editGroup = params.get("editGroup");
+const newGroup = params.has("newGroup");
+const editItem = params.get("editItem");
+const newItemGroup = params.get("newItem");
+
+const group = newGroup ? null : groups.find((g) => String(g.id) === editGroup);
+const showGroupForm = newGroup || Boolean(group);
+
+const item = newItemGroup ? null : items.find((i) => String(i.id) === editItem);
+const showItemForm = Boolean(newItemGroup) || Boolean(item);
+const itemGroupId = item?.group_id ?? Number(newItemGroup);
+
+const saved = params.has("saved");
+const error =
+    groupResult?.error?.message ||
+    itemResult?.error?.message ||
+    moveResult?.error?.message ||
+    visResult?.error?.message ||
+    delResult?.error?.message;
+---
+
+<AdminLayout title="Parcours">
+    <Alert type="success" message={saved ? "Modifications enregistrées." : null} />
+    <Alert type="error" message={error} />
+
+    <div class="admin-card">
+        <div class="flex items-start justify-between gap-4 mb-4">
+            <div>
+                <h2 class="admin-card-title">Groupes de la timeline</h2>
+                <p class="admin-card-hint mb-0">
+                    Chaque groupe est une section de la timeline (Expériences,
+                    Formation…). Le côté détermine de quel côté des cartes passe
+                    la ligne lumineuse ; elle serpente automatiquement d'un
+                    groupe à l'autre.
+                </p>
+            </div>
+            <a
+                href="/admin/experience?newGroup"
+                class="admin-button admin-button--primary shrink-0"
+            >
+                <span class="material-icons">add</span>
+                Groupe
+            </a>
+        </div>
+
+        {
+            groups.length === 0 && (
+                <div class="admin-empty">
+                    Aucun groupe. La section Parcours n'apparaîtra pas sur le site.
+                </div>
+            )
+        }
+    </div>
+
+    {
+        groups.map((g, groupIndex) => {
+            const groupItems = items.filter((i) => i.group_id === g.id);
+
+            return (
+                <div class="admin-card">
+                    <div class="flex items-start justify-between gap-4 mb-4 flex-wrap">
+                        <div class="min-w-0">
+                            <h2 class="admin-card-title">
+                                {pick(g.heading, "fr") || "(groupe sans titre)"}
+                            </h2>
+                            <p class="admin-card-hint mb-0">
+                                {pick(g.eyebrow, "fr")}
+                                <span class="admin-badge admin-badge--accent ml-2">
+                                    {g.side === "right" ? "aligné à droite" : "aligné à gauche"}
+                                </span>
+                                {!g.visible && (
+                                    <span class="admin-badge admin-badge--off ml-1">
+                                        Masqué
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+
+                        <div class="flex items-center gap-2 shrink-0">
+                            <a
+                                href={`/admin/experience?newItem=${g.id}`}
+                                class="admin-button admin-button--ghost"
+                            >
+                                <span class="material-icons">add</span>
+                                Entrée
+                            </a>
+                            <RowActions
+                                table="timeline_groups"
+                                id={g.id}
+                                visible={Boolean(g.visible)}
+                                isFirst={groupIndex === 0}
+                                isLast={groupIndex === groups.length - 1}
+                                editHref={`/admin/experience?editGroup=${g.id}`}
+                                deleteLabel={`Supprimer ce groupe et ses ${groupItems.length} entrée(s) ?`}
+                            />
+                        </div>
+                    </div>
+
+                    {groupItems.length === 0 ? (
+                        <div class="admin-empty">Aucune entrée dans ce groupe.</div>
+                    ) : (
+                        <div class="admin-list">
+                            {groupItems.map((entry, index) => (
+                                <div
+                                    class:list={[
+                                        "admin-item",
+                                        !entry.visible && "admin-item--hidden",
+                                    ]}
+                                >
+                                    {entry.logo_filename ? (
+                                        <img
+                                            src={`/media/${entry.logo_filename}`}
+                                            alt=""
+                                            class="admin-item-thumb"
+                                            style="object-fit: contain; padding: 0.25rem"
+                                        />
+                                    ) : (
+                                        <span class="material-icons text-primary">
+                                            {entry.icon}
+                                        </span>
+                                    )}
+
+                                    <div class="admin-item-body">
+                                        <p class="admin-item-title">
+                                            {pick(entry.role, "fr") || "(sans intitulé)"}
+                                            {Boolean(entry.is_current) && (
+                                                <span class="admin-badge admin-badge--on">
+                                                    En cours
+                                                </span>
+                                            )}
+                                            {!entry.visible && (
+                                                <span class="admin-badge admin-badge--off">
+                                                    Masquée
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p class="admin-item-meta">
+                                            {entry.company}
+                                            {" · "}
+                                            {pick(entry.period, "fr")}
+                                            {pickList(entry.tags, "fr").length > 0 &&
+                                                ` · ${pickList(entry.tags, "fr").join(", ")}`}
+                                        </p>
+                                    </div>
+
+                                    <RowActions
+                                        table="timeline_items"
+                                        id={entry.id}
+                                        visible={Boolean(entry.visible)}
+                                        isFirst={index === 0}
+                                        isLast={index === groupItems.length - 1}
+                                        groupId={g.id}
+                                        editHref={`/admin/experience?editItem=${entry.id}`}
+                                        deleteLabel={`Supprimer « ${pick(entry.role, "fr")} » chez ${entry.company} ?`}
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            );
+        })
+    }
+
+    <!-- Formulaire de groupe -->
+    {
+        showGroupForm && (
+            <div class="admin-card">
+                <h2 class="admin-card-title">
+                    {group ? "Modifier le groupe" : "Nouveau groupe"}
+                </h2>
+
+                <form method="POST" action={actions.timelineGroup}>
+                    {group && <input type="hidden" name="id" value={group.id} />}
+
+                    <I18nField
+                        name="eyebrow"
+                        label="Sur-titre"
+                        value={group?.eyebrow}
+                        placeholder="Parcours Professionnel"
+                    />
+                    <I18nField
+                        name="heading"
+                        label="Titre"
+                        value={group?.heading}
+                        placeholder="Expériences"
+                        required
+                    />
+                    <Field
+                        name="side"
+                        label="Côté de la timeline"
+                        value={group?.side ?? "left"}
+                        type="select"
+                        options={[
+                            { value: "left", label: "Gauche (ligne à gauche des cartes)" },
+                            { value: "right", label: "Droite (ligne à droite des cartes)" },
+                        ]}
+                        hint="Alterner les côtés d'un groupe à l'autre donne l'effet de serpentin."
+                    />
+                    <Toggle
+                        name="visible"
+                        label="Afficher ce groupe"
+                        checked={group ? Boolean(group.visible) : true}
+                    />
+
+                    <div class="admin-actions">
+                        <button type="submit" class="admin-button admin-button--primary">
+                            <span class="material-icons">save</span>
+                            Enregistrer
+                        </button>
+                        <a href="/admin/experience" class="admin-button admin-button--ghost">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+
+    <!-- Formulaire d'entrée -->
+    {
+        showItemForm && (
+            <div class="admin-card">
+                <h2 class="admin-card-title">
+                    {item ? "Modifier l'entrée" : "Nouvelle entrée"}
+                </h2>
+
+                <form method="POST" action={actions.timelineItem}>
+                    {item && <input type="hidden" name="id" value={item.id} />}
+
+                    <Field
+                        name="group_id"
+                        label="Groupe"
+                        value={itemGroupId}
+                        type="select"
+                        options={groups.map((g) => ({
+                            value: String(g.id),
+                            label: pick(g.heading, "fr") || `Groupe ${g.id}`,
+                        }))}
+                        required
+                    />
+
+                    <Field
+                        name="company"
+                        label="Organisation"
+                        value={item?.company}
+                        placeholder="Thales Services Numériques"
+                        required
+                    />
+
+                    <I18nField
+                        name="role"
+                        label="Intitulé du poste / diplôme"
+                        value={item?.role}
+                        required
+                    />
+
+                    <div class="admin-grid-2">
+                        <I18nField
+                            name="period"
+                            label="Période"
+                            value={item?.period}
+                            placeholder="Mars 2026 — Présent"
+                        />
+                        <Field
+                            name="location"
+                            label="Lieu"
+                            value={item?.location}
+                            placeholder="Lyon, France"
+                        />
+                    </div>
+
+                    <I18nField
+                        name="description"
+                        label="Description"
+                        value={item?.description}
+                        type="textarea"
+                        rows={4}
+                    />
+
+                    <I18nField
+                        name="tags"
+                        label="Technologies"
+                        value={item?.tags}
+                        type="list"
+                        separator="comma"
+                        hint="Séparées par des virgules."
+                    />
+
+                    <hr class="admin-divider" />
+
+                    <div class="admin-grid-2">
+                        <Field
+                            name="icon"
+                            label="Icône Material"
+                            value={item?.icon ?? "work"}
+                            placeholder="work"
+                            hint="Affichée dans la pastille de la timeline (work, school, biotech…)."
+                        />
+                        <MediaPicker
+                            name="logo_id"
+                            label="Logo de l'organisation"
+                            value={item?.logo_id}
+                            hint="Affiché en filigrane dans le coin de la carte."
+                        />
+                    </div>
+
+                    <Toggle
+                        name="is_current"
+                        label="Poste / formation en cours (affiche un badge animé)"
+                        checked={item ? Boolean(item.is_current) : false}
+                    />
+
+                    <I18nField
+                        name="badge"
+                        label="Texte du badge"
+                        value={item?.badge}
+                        placeholder="En poste"
+                        hint="Visible uniquement si la case ci-dessus est cochée."
+                    />
+
+                    <Toggle
+                        name="visible"
+                        label="Afficher sur le site"
+                        checked={item ? Boolean(item.visible) : true}
+                    />
+
+                    <div class="admin-actions">
+                        <button type="submit" class="admin-button admin-button--primary">
+                            <span class="material-icons">save</span>
+                            Enregistrer
+                        </button>
+                        <a href="/admin/experience" class="admin-button admin-button--ghost">
+                            Annuler
+                        </a>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+</AdminLayout>

@@ -1,10 +1,35 @@
 ---
-import { SITE_CONFIG } from "../config";
+import { getSettings } from "../lib/content";
+import type { Lang } from "../lib/i18n";
 
-const year = new Date().getFullYear();
+interface Props {
+    lang: Lang;
+}
+
+const { lang } = Astro.props;
+
+const settings = getSettings(lang);
+
+/** Les textes de pied de page acceptent {year} et {name} depuis l'admin. */
+const fill = (template: string) =>
+    template
+        .replace(/\{year\}/g, String(new Date().getFullYear()))
+        .replace(/\{name\}/g, settings.name);
+
+const text = fill(settings.footerText);
+const subtext = fill(settings.footerSubtext);
+
+const adminLabel = lang === "fr" ? "Administration" : "Admin";
 ---
 
 <footer class="mt-12 text-center text-gray-600 text-xs font-mono">
-    <p>&copy; {year} {SITE_CONFIG.name}. All systems operational.</p>
-    <p class="mt-2 opacity-50">Built with Astro &amp; TailwindCSS. Latency: &lt; 10ms.</p>
+    {text && <p>{text}</p>}
+    {subtext && <p class="mt-2 opacity-50">{subtext}</p>}
+    <p class="mt-3">
+        <a
+            href="/admin"
+            class="opacity-30 hover:opacity-100 hover:text-primary transition-all"
+            rel="nofollow">{adminLabel}</a
+        >
+    </p>
 </footer>

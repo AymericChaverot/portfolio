@@ -6,22 +6,45 @@ import Expertise from "../../components/Expertise.astro";
 import Experience from "../../components/Experience.astro";
 import Projects from "../../components/Projects.astro";
 import Contact from "../../components/Contact.astro";
-import { SITE_CONFIG, type Lang } from "../../config";
+import { getSections, getSettings } from "../../lib/content";
+import { isLang, type Lang } from "../../lib/i18n";
 
-export function getStaticPaths() {
-    return [{ params: { lang: "en" } }, { params: { lang: "fr" } }];
+export const prerender = false;
+
+const { lang: rawLang } = Astro.params;
+
+// Une langue inconnue dans l'URL doit répondre 404, pas afficher le site
+// en langue par défaut sous une URL fantôme (mauvais pour le SEO).
+if (!isLang(rawLang)) {
+    return Astro.rewrite("/404");
 }
 
-const { lang } = Astro.params as { lang: Lang };
+const lang = rawLang as Lang;
+const settings = getSettings(lang);
+
+/**
+ * Les sections sont rendues dans l'ordre défini en admin. Une section
+ * masquée disparaît simplement de la liste.
+ */
+const COMPONENTS = {
+    hero: Hero,
+    expertise: Expertise,
+    experience: Experience,
+    projects: Projects,
+    contact: Contact,
+} as const;
+
+const sections = getSections(lang).filter((s) => s.key in COMPONENTS);
 ---
 
-<Layout title={SITE_CONFIG.name} lang={lang}>
+<Layout lang={lang} description={settings.seoDescription}>
     <Navbar lang={lang} />
-    <main>
-        <Hero lang={lang} />
-        <Expertise lang={lang} />
-        <Experience lang={lang} />
-        <Projects lang={lang} />
-        <Contact lang={lang} />
+    <main id="main-content">
+        {
+            sections.map((section) => {
+                const Component = COMPONENTS[section.key as keyof typeof COMPONENTS];
+                return <Component lang={lang} />;
+            })
+        }
     </main>
 </Layout>

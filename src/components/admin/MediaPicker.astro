@@ -1,0 +1,95 @@
+---
+import { listMedia } from "../../lib/media";
+
+/**
+ * Sélection d'un fichier déjà présent dans la médiathèque.
+ * L'aperçu se met à jour à la volée pour éviter d'enregistrer à l'aveugle.
+ */
+interface Props {
+    name: string;
+    label: string;
+    value?: number | null;
+    hint?: string;
+    /** Restreint la liste (images pour un visuel, PDF pour le CV). */
+    accept?: "image" | "pdf";
+}
+
+const { name, label, value, hint, accept = "image" } = Astro.props;
+
+const media = listMedia().filter((item) =>
+    accept === "pdf"
+        ? item.mime === "application/pdf"
+        : item.mime.startsWith("image/"),
+);
+
+const selected = media.find((item) => item.id === value);
+
+// Sérialisé pour le script d'aperçu : le <select> ne porte que l'identifiant.
+const previews = Object.fromEntries(
+    media.map((item) => [item.id, `/media/${item.filename}`]),
+);
+---
+
+<div class="admin-field">
+    <label class="admin-label" for={name}>{label}</label>
+
+    <div class="flex items-start gap-3">
+        {
+            accept === "image" && (
+                <img
+                    id={`${name}-preview`}
+                    src={selected ? `/media/${selected.filename}` : ""}
+                    alt=""
+                    class="admin-item-thumb"
+                    hidden={!selected}
+                />
+            )
+        }
+
+        <div class="flex-1 min-w-0">
+            <select id={name} name={name} class="admin-select">
+                <option value="">— Aucun —</option>
+                {
+                    media.map((item) => (
+                        <option value={item.id} selected={item.id === value}>
+                            {item.original_name}
+                            {item.width ? ` (${item.width}×${item.height})` : ""}
+                        </option>
+                    ))
+                }
+            </select>
+
+            <p class="admin-hint">
+                {hint}
+                {hint && " "}
+                <a href="/admin/media" class="text-primary hover:underline">
+                    Gérer les médias
+                </a>
+                {media.length === 0 && " — aucun fichier disponible pour l'instant."}
+            </p>
+        </div>
+    </div>
+</div>
+
+{
+    accept === "image" && (
+        <script is:inline define:vars={{ selectId: name, previews }}>
+            (function () {
+                const select = document.getElementById(selectId);
+                const preview = document.getElementById(selectId + "-preview");
+                if (!select || !preview) return;
+
+                select.addEventListener("change", () => {
+                    const url = previews[select.value];
+                    if (url) {
+                        preview.src = url;
+                        preview.hidden = false;
+                    } else {
+                        preview.removeAttribute("src");
+                        preview.hidden = true;
+                    }
+                });
+            })();
+        </script>
+    )
+}
