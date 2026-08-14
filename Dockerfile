@@ -42,7 +42,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV HOST=0.0.0.0
-ENV PORT=80
+ENV PORT=4321
 ENV DATABASE_PATH=/data/portfolio.db
 ENV UPLOADS_DIR=/data/uploads
 # Les images d'origine du dépôt, importées en base au premier démarrage.
@@ -60,7 +60,7 @@ RUN mkdir -p /data/uploads && chown -R node:node /data /app
 
 USER node
 
-EXPOSE 80
+EXPOSE 4321
 
 # Vérifie que le serveur répond réellement, pas seulement que le process vit.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
